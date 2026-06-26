@@ -1,41 +1,113 @@
-# Personal Knowledge Curator (Phase 1 MVP)
+# HomeReady
 
-**Description**  
-The **Personal Knowledge Curator (PKC)** is an autonomous AI assistant designed to help users collect, summarize, and organize personal knowledge. Unlike traditional note-taking tools, the Curator actively processes user inputs, generates semantic tags, links related notes, and provides reflective insights.
+**AI-powered companion for UK first-time home buyers.**
 
-This Phase 1 MVP allows a user to either paste full content or submit a URL (placeholder for now). The Curator agent then:
-
-- Summarizes the content
-- Generates semantic tags
-- Stores notes in a PostgreSQL database with embeddings
-- Suggests related notes via semantic search
-- Optionally provides a mini-reflection on the user's knowledge growth
+HomeReady guides buyers through every stage of the property purchase journey — from budgeting to getting the keys — using Claude AI to explain complex documents, decode estate agent listings, and give honest neighbourhood intelligence.
 
 ---
 
-## **Key Features (Phase 1)**
+## Features
 
-- **Autonomous AI Agent:** The Curator decides what actions to take on new inputs.
-- **Curator Personality:** Friendly, reflective, and thoughtful tone in summaries and reflections.
-- **Semantic Organization:** Notes are linked by meaning using embeddings rather than folders or tags.
-- **Flexible Input:** Users can paste text or provide a URL (manual for now).
-- **Mini Reflection:** Optional feature summarizing trends in user notes.
-
----
-
-## **Technical Stack**
-
-| Layer                     | Technology / Library                    | Purpose |
-|----------------------------|----------------------------------------|---------|
-| **Frontend (UI)**          | Streamlit                               | Quick interface for input and visualization |
-| **Backend**                | FastAPI                                 | API for note ingestion and agent communication |
-| **Agent Framework**        | Strands                                 | Orchestrates summarization, tagging, embedding, and reasoning |
-| **LLM**                    | OpenAI GPT-4o-mini                       | Summarization, tagging, reflective insights |
-| **Database**               | PostgreSQL + pgvector                    | Store notes, embeddings, and enable semantic search |
-| **Embeddings**             | OpenAI `text-embedding-3-large`         | Semantic similarity and linking |
-| **Environment Management** | Python venv, dotenv                      | Isolated dev environment, API keys management |
+| Stage | Feature | Description |
+|-------|---------|-------------|
+| 1 — Financial Readiness | **Cost Calculator** | True total cost of buying — Stamp Duty, legal fees, surveys, and more |
+| 2 — Property Evaluation | **Listing Decoder** | Decodes estate agent language, flags red flags, generates viewing questions |
+| 2 — Property Evaluation | **Neighbourhood Briefing** | AI agent calls live APIs (TfL, flood risk, Ofsted) to build an honest area briefing |
+| 4 — Legal & Survey | **Document Explainer** | Explains conveyancing documents clause-by-clause in plain English |
+| 6 — Homeowner Mode | **Post-Completion Checklist** | Interactive checklist of everything to do after getting the keys |
 
 ---
 
-## **Repository Structure**
+## Tech Stack
 
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React + Vite + TypeScript + Tailwind CSS |
+| Backend | FastAPI + async SQLAlchemy + asyncpg |
+| AI | Anthropic Claude (claude-sonnet-4-6) |
+| Auth | Supabase Auth |
+| Database | Supabase PostgreSQL |
+| Migrations | Alembic |
+
+---
+
+## Project Structure
+
+```
+homeready/
+├── backend/
+│   ├── main.py                  # FastAPI app entry point
+│   ├── app/
+│   │   ├── api/routes/          # Feature, auth, and checklist routes
+│   │   ├── core/                # Config, database, Claude client, auth
+│   │   ├── models/              # SQLAlchemy models + Pydantic schemas
+│   │   ├── prompts/             # Claude prompt functions
+│   │   └── services/            # Business logic (calls Claude)
+│   └── migrations/              # Alembic migrations
+└── frontend/
+    ├── src/
+    │   ├── pages/               # One file per feature page
+    │   ├── components/ui/       # Shared design system components
+    │   ├── lib/                 # API client, Supabase client, auth context
+    │   └── types/               # TypeScript types
+    └── public/
+```
+
+---
+
+## Running Locally
+
+### Prerequisites
+- Python 3.12
+- Node.js 18+
+- A [Supabase](https://supabase.com) project
+- An [Anthropic](https://console.anthropic.com) API key
+
+### Backend
+
+```bash
+cd backend
+python3.12 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+Create `backend/.env`:
+```
+ANTHROPIC_API_KEY=...
+DATABASE_URL=postgresql+asyncpg://...
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_KEY=...
+CORS_ORIGINS=http://localhost:5173
+```
+
+Run migrations and start:
+```bash
+alembic upgrade head
+uvicorn main:app --reload --port 8000
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+```
+
+Create `frontend/.env.local`:
+```
+VITE_API_URL=http://localhost:8000
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=...
+```
+
+```bash
+npm run dev
+```
+
+---
+
+## Deployment
+
+- **Backend:** [Railway](https://railway.app) — set all `backend/.env` variables in the Railway dashboard
+- **Frontend:** [Vercel](https://vercel.com) — set all `frontend/.env.local` variables in the Vercel dashboard
