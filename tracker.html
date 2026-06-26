@@ -545,8 +545,8 @@ const PHASES = [
       { id:'f23', name:'User auth (sign up / log in)', desc:'Supabase Auth integration, JWT middleware', status:'done', tag:'backend' },
       { id:'f24', name:'Auth UI', desc:'Login/signup pages, protected routes', status:'done', tag:'frontend' },
       { id:'f25', name:'Journey persistence', desc:'Save stage progress per user to DB', status:'pending', tag:'backend' },
-      { id:'f26', name:'Railway deployment', desc:'Backend live on Railway with env vars', status:'pending', tag:'infra' },
-      { id:'f27', name:'Vercel deployment', desc:'Frontend live on Vercel with env vars', status:'pending', tag:'infra' },
+      { id:'f26', name:'Railway deployment', desc:'Backend live on Railway with env vars', status:'done', tag:'infra' },
+      { id:'f27', name:'Vercel deployment', desc:'Frontend live on Vercel with env vars', status:'done', tag:'infra' },
     ]
   },
   {
@@ -593,33 +593,55 @@ const DAILY_LOG = [
       { type: 'infra',   text: 'Installed Node.js 26 via Homebrew, ran npm install for frontend' },
       { type: 'setup',   text: 'Populated frontend/.env.local with Supabase URL and anon key' },
     ]
+  },
+  {
+    date: '2026-06-26',
+    items: [
+      { type: 'frontend', text: 'Completed full UI pass — Dusk Parchment design system applied to all 4 feature pages (Readiness, Evaluate, Neighbourhood, Legal)' },
+      { type: 'frontend', text: 'Built AuthPage — login/signup with tab toggle, email confirmation state, Dusk Parchment design' },
+      { type: 'frontend', text: 'Built AuthProvider + useAuth hook — Supabase session state, sign in/up/out' },
+      { type: 'frontend', text: 'Added RequireAuth guard — unauthenticated users redirected to /auth' },
+      { type: 'frontend', text: 'Added sign-out button + user email display in top nav' },
+      { type: 'frontend', text: 'Added axios interceptor — Supabase JWT attached to every API request automatically' },
+      { type: 'backend',  text: 'Built auth middleware — get_current_user() uses Supabase Admin client to verify tokens (no JWT secret required)' },
+      { type: 'backend',  text: 'Added GET /api/v1/auth/me endpoint' },
+      { type: 'backend',  text: 'Built POST-completion checklist — GET /api/v1/checklist seeds 16 default items on first access, PATCH toggles completion' },
+      { type: 'backend',  text: 'Added category column to checklist_items via Alembic migration' },
+      { type: 'backend',  text: 'Dropped FK constraint on checklist_items.user_id — uses Supabase auth UUID directly' },
+      { type: 'frontend', text: 'Built HomeownerPage — progress ring, 3 category sections (urgent/important/admin), optimistic toggle, deadline badges' },
+      { type: 'infra',    text: 'Created Procfile + runtime.txt for Railway backend deployment' },
+      { type: 'infra',    text: 'Created vercel.json for React Router client-side routing on Vercel' },
+      { type: 'infra',    text: 'Added tsconfig.json + tsconfig.node.json — fixed Vercel TypeScript build' },
+      { type: 'infra',    text: 'Backend deployed to Railway — https://homeready-production.up.railway.app' },
+      { type: 'infra',    text: 'Frontend deployed to Vercel — https://homeready-pied.vercel.app' },
+    ]
   }
 ];
 
 const NEXT_STEPS = [
   {
-    label: 'Start the local dev servers',
-    sub: 'backend: venv/bin/uvicorn main:app --reload  |  frontend: npm run dev',
-  },
-  {
-    label: 'Build Stage 1 — Cost Calculator UI',
-    sub: 'Create frontend/src/pages/ReadinessPage.tsx — form → POST /readiness/costs → display breakdown',
-  },
-  {
-    label: 'Build Stage 4 — Legal Document UI',
-    sub: 'Create LegalPage.tsx with paste + PDF upload, wire to existing /legal/document endpoints',
-  },
-  {
-    label: 'Add user auth (Supabase Auth)',
-    sub: 'Backend JWT middleware + frontend login/signup pages + protected routes',
+    label: 'End-to-end testing on production',
+    sub: 'Test all 5 features on homeready-pied.vercel.app — sign up, cost calc, listing decoder, neighbourhood, document explainer, checklist',
   },
   {
     label: 'Wire journey persistence',
-    sub: 'Save stage progress to journeys table per user, load on app start',
+    sub: 'Save stage progress to journeys table per user, load on app start so sidebar reflects real progress',
   },
   {
-    label: 'Deploy MVP to Railway + Vercel',
-    sub: 'Set production env vars, test end-to-end on live URLs',
+    label: 'Stage 3 — Offer & Negotiation',
+    sub: 'AI assistant to help draft and evaluate offers, understand negotiation tactics',
+  },
+  {
+    label: 'Stage 5 — Exchange & Completion',
+    sub: 'Guided checklist and explainer for the exchange and completion process',
+  },
+  {
+    label: 'Supabase email confirmation',
+    sub: 'Re-enable email confirmation in Supabase Auth before sharing with real users',
+  },
+  {
+    label: 'Custom domain',
+    sub: 'Point a custom domain at the Vercel deployment',
   },
 ];
 
