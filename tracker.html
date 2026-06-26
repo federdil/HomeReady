@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HomeReady — Build Tracker</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy: #0f172a;
+    --brand: #2563eb;
+    --brand-light: #eff6ff;
+    --brand-border: #bfdbfe;
+    --green: #16a34a;
+    --green-light: #f0fdf4;
+    --green-border: #bbf7d0;
+    --amber: #d97706;
+    --amber-light: #fffbeb;
+    --amber-border: #fde68a;
+    --red: #dc2626;
+    --red-light: #fef2f2;
+    --red-border: #fecaca;
+    --gray-50: #f8fafc;
+    --gray-100: #f1f5f9;
+    --gray-200: #e2e8f0;
+    --gray-400: #94a3b8;
+    --gray-600: #475569;
+    --gray-800: #1e293b;
+    --text: #0f172a;
+    --text-muted: #64748b;
+    --surface: #ffffff;
+    --border: #e2e8f0;
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --navy: #0f172a;
+      --brand: #3b82f6;
+      --brand-light: #1e3a5f;
+      --brand-border: #1d4ed8;
+      --green-light: #052e16;
+      --green-border: #166534;
+      --amber-light: #1c1108;
+      --amber-border: #92400e;
+      --red-light: #1c0a0a;
+      --red-border: #991b1b;
+      --gray-50: #0f172a;
+      --gray-100: #1e293b;
+      --gray-200: #334155;
+      --gray-400: #64748b;
+      --gray-600: #94a3b8;
+      --gray-800: #e2e8f0;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --surface: #1e293b;
+      --border: #334155;
+    }
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--gray-50);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  header {
+    background: var(--navy);
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  header .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: white;
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  header .logo span {
+    background: var(--brand);
+    border-radius: 6px;
+    width: 30px; height: 30px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+
+  header .date {
+    color: #94a3b8;
+    font-size: 13px;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 24px;
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+
+  /* Sidebar */
+  .sidebar { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 72px; }
+
+  .progress-card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+  }
+
+  .progress-card h3 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    font-weight: 500;
+  }
+
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 10px;
+  }
+
+  .stat-number {
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .stat-label { font-size: 12px; color: var(--text-muted); }
+
+  .progress-bar-wrap {
+    background: var(--gray-200);
+    border-radius: 99px;
+    height: 6px;
+    margin: 12px 0 4px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    border-radius: 99px;
+    background: var(--brand);
+    transition: width 0.4s ease;
+  }
+
+  .progress-pct {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: right;
+  }
+
+  .nav-links {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+
+  .nav-links a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 16px;
+    text-decoration: none;
+    color: var(--text-muted);
+    font-size: 13px;
+    border-bottom: 0.5px solid var(--border);
+    transition: background 0.15s;
+  }
+
+  .nav-links a:last-child { border-bottom: none; }
+  .nav-links a:hover { background: var(--gray-100); color: var(--text); }
+  .nav-links a.active { background: var(--brand-light); color: var(--brand); }
+
+  .nav-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* Main */
+  .main { display: flex; flex-direction: column; gap: 24px; }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .section-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .badge {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 99px;
+  }
+
+  .badge-green { background: var(--green-light); color: var(--green); border: 0.5px solid var(--green-border); }
+  .badge-amber { background: var(--amber-light); color: var(--amber); border: 0.5px solid var(--amber-border); }
+  .badge-blue  { background: var(--brand-light); color: var(--brand); border: 0.5px solid var(--brand-border); }
+  .badge-gray  { background: var(--gray-100); color: var(--text-muted); border: 0.5px solid var(--border); }
+  .badge-red   { background: var(--red-light); color: var(--red); border: 0.5px solid var(--red-border); }
+
+  /* Milestone cards */
+  .card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+
+  .card-header {
+    padding: 16px 20px;
+    border-bottom: 0.5px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .card-header:hover { background: var(--gray-50); }
+
+  .card-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .phase-icon {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px;
+    flex-shrink: 0;
+  }
+
+  .phase-icon.done { background: var(--green-light); color: var(--green); }
+  .phase-icon.active { background: var(--brand-light); color: var(--brand); }
+  .phase-icon.pending { background: var(--gray-100); color: var(--text-muted); }
+
+  .card-title { font-size: 14px; font-weight: 600; }
+  .card-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+
+  .card-header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .toggle-arrow {
+    color: var(--text-muted);
+    font-size: 11px;
+    transition: transform 0.2s;
+  }
+
+  .card-body { padding: 4px 0; }
+  .card-body.collapsed { display: none; }
+
+  .feature-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 20px;
+    border-bottom: 0.5px solid var(--border);
+    transition: background 0.1s;
+  }
+
+  .feature-row:last-child { border-bottom: none; }
+  .feature-row:hover { background: var(--gray-50); }
+
+  .check-wrap {
+    margin-top: 1px;
+    flex-shrink: 0;
+  }
+
+  .check {
+    width: 17px; height: 17px;
+    border-radius: 4px;
+    border: 1.5px solid var(--gray-200);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+    color: transparent;
+    transition: all 0.15s;
+  }
+
+  .check.done { background: var(--green); border-color: var(--green); color: white; }
+  .check.partial { background: var(--amber-light); border-color: var(--amber); color: var(--amber); }
+
+  .feature-text { flex: 1; min-width: 0; }
+  .feature-name { font-size: 13px; font-weight: 500; color: var(--text); }
+  .feature-desc { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+
+  .feature-tag {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  /* Daily log */
+  .log-entry {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+
+  .log-date-header {
+    padding: 12px 20px;
+    background: var(--gray-100);
+    border-bottom: 0.5px solid var(--border);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .log-date-header .today-pill {
+    background: var(--brand);
+    color: white;
+    font-size: 10px;
+    padding: 1px 7px;
+    border-radius: 99px;
+  }
+
+  .log-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 9px 20px;
+    border-bottom: 0.5px solid var(--border);
+    font-size: 13px;
+  }
+
+  .log-item:last-child { border-bottom: none; }
+
+  .log-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    margin-top: 5px;
+    flex-shrink: 0;
+  }
+
+  .log-dot.setup { background: var(--brand); }
+  .log-dot.backend { background: var(--green); }
+  .log-dot.infra { background: var(--amber); }
+  .log-dot.fix { background: #8b5cf6; }
+
+  .log-text { color: var(--text); line-height: 1.5; }
+  .log-tag { color: var(--text-muted); font-size: 12px; }
+
+  /* Next steps */
+  .next-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 20px;
+    border-bottom: 0.5px solid var(--border);
+  }
+
+  .next-item:last-child { border-bottom: none; }
+
+  .next-num {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--brand-light);
+    color: var(--brand);
+    font-size: 11px;
+    font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .next-text { font-size: 13px; color: var(--text); }
+  .next-sub  { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  .section { }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span>🏠</span>
+    HomeReady — Build Tracker
+  </div>
+  <div class="date" id="header-date"></div>
+</header>
+
+<div class="container">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+
+    <div class="progress-card">
+      <h3>Overall progress</h3>
+      <div class="stat-row">
+        <div>
+          <div class="stat-number" id="done-count">0</div>
+          <div class="stat-label">tasks complete</div>
+        </div>
+        <div style="text-align:right">
+          <div class="stat-number" id="total-count">0</div>
+          <div class="stat-label">total tasks</div>
+        </div>
+      </div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+      </div>
+      <div class="progress-pct" id="progress-pct">0%</div>
+    </div>
+
+    <div class="nav-links">
+      <a href="#milestones" class="active">
+        <div class="nav-dot" style="background:var(--brand)"></div>
+        Milestones
+      </a>
+      <a href="#daily-log">
+        <div class="nav-dot" style="background:var(--green)"></div>
+        Daily log
+      </a>
+      <a href="#next-steps">
+        <div class="nav-dot" style="background:var(--amber)"></div>
+        Next steps
+      </a>
+    </div>
+
+    <div class="progress-card">
+      <h3>Phase status</h3>
+      <div style="display:flex;flex-direction:column;gap:8px" id="phase-status"></div>
+    </div>
+
+  </aside>
+
+  <!-- Main content -->
+  <main class="main">
+
+    <!-- Milestones -->
+    <section class="section" id="milestones">
+      <div class="section-header">
+        <div class="section-title">Project milestones</div>
+        <span class="badge badge-blue">3 phases</span>
+      </div>
+      <div id="milestone-list" style="display:flex;flex-direction:column;gap:12px"></div>
+    </section>
+
+    <!-- Daily log -->
+    <section class="section" id="daily-log">
+      <div class="section-header">
+        <div class="section-title">Daily log</div>
+        <span class="badge badge-gray" id="log-count">0 entries</span>
+      </div>
+      <div id="log-list" style="display:flex;flex-direction:column;gap:10px"></div>
+    </section>
+
+    <!-- Next steps -->
+    <section class="section" id="next-steps">
+      <div class="section-header">
+        <div class="section-title">Next steps</div>
+        <span class="badge badge-amber">Up next</span>
+      </div>
+      <div class="card">
+        <div id="next-list"></div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+const TODAY = new Date().toISOString().slice(0,10);
+
+document.getElementById('header-date').textContent =
+  new Date().toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+
+/* ── DATA ─────────────────────────────────────────────────────────────── */
+
+const PHASES = [
+  {
+    id: 'phase0',
+    label: 'Phase 0 — Setup & Infrastructure',
+    target: 'Week 0 (pre-build)',
+    icon: '⚙️',
+    features: [
+      { id:'f01', name:'Python 3.12 virtual environment', desc:'venv created, requirements.txt installed', status:'done', tag:'backend' },
+      { id:'f02', name:'FastAPI app skeleton', desc:'main.py, config, CORS, health endpoint', status:'done', tag:'backend' },
+      { id:'f03', name:'SQLAlchemy models', desc:'User, Journey, Analysis, ChecklistItem tables', status:'done', tag:'backend' },
+      { id:'f04', name:'Alembic migrations', desc:'env.py wired, initial schema migrated to Supabase', status:'done', tag:'backend' },
+      { id:'f05', name:'Supabase database', desc:'PostgreSQL provisioned, connection pooler configured', status:'done', tag:'infra' },
+      { id:'f06', name:'Environment variables', desc:'.env (backend) and .env.local (frontend) fully populated', status:'done', tag:'infra' },
+      { id:'f07', name:'React + Vite frontend skeleton', desc:'TypeScript, Tailwind, React Router, React Query', status:'done', tag:'frontend' },
+      { id:'f08', name:'Claude API integration', desc:'ask_claude(), ask_claude_with_tools() wrappers', status:'done', tag:'backend' },
+      { id:'f09', name:'Anthropic API key', desc:'sk-ant-... saved to backend .env', status:'done', tag:'infra' },
+      { id:'f10', name:'.gitignore', desc:'.env files excluded from version control', status:'done', tag:'infra' },
+    ]
+  },
+  {
+    id: 'phase1',
+    label: 'Phase 1 — MVP (8 weeks)',
+    target: 'Target: ~8 weeks from start',
+    icon: '🚀',
+    features: [
+      { id:'f11', name:'Journey tracker UI (R-04)', desc:'Visual 6-stage timeline with user-controlled progress', status:'done', tag:'frontend' },
+      { id:'f12', name:'Cost-to-buy calculator (R-01)', desc:'POST /readiness/costs → full breakdown incl. SDLT', status:'done', tag:'backend' },
+      { id:'f13', name:'Cost calculator UI', desc:'Stage 1 page with form + results display', status:'done', tag:'frontend' },
+      { id:'f14', name:'Listing decoder (R-02)', desc:'POST /evaluate/listing → trust score, euphemisms, red flags', status:'done', tag:'backend' },
+      { id:'f15', name:'Listing decoder UI', desc:'Stage 2 tab — paste listing, see decoded results', status:'done', tag:'frontend' },
+      { id:'f16', name:'Leasehold risk scanner (R-03)', desc:'Detected inside listing decoder response (leasehold field)', status:'done', tag:'backend' },
+      { id:'f17', name:'Neighbourhood Intelligence Agent (R-10)', desc:'Agentic Claude loop with transport, schools, flood risk tools', status:'done', tag:'backend' },
+      { id:'f18', name:'Neighbourhood UI', desc:'Stage 2 tab — postcode input + briefing display', status:'done', tag:'frontend' },
+      { id:'f19', name:'Legal document explainer (R-05)', desc:'POST /legal/document + PDF upload endpoint', status:'done', tag:'backend' },
+      { id:'f20', name:'Legal document UI', desc:'Stage 4 page — paste or upload document, see explanation', status:'done', tag:'frontend' },
+      { id:'f21', name:'Post-completion checklist (R-07)', desc:'ChecklistItem model in DB, stage 6 endpoints', status:'done', tag:'backend' },
+      { id:'f22', name:'Post-completion UI', desc:'Stage 6 page — interactive checklist with deadlines', status:'done', tag:'frontend' },
+      { id:'f23', name:'User auth (sign up / log in)', desc:'Supabase Auth integration, JWT middleware', status:'done', tag:'backend' },
+      { id:'f24', name:'Auth UI', desc:'Login/signup pages, protected routes', status:'done', tag:'frontend' },
+      { id:'f25', name:'Journey persistence', desc:'Save stage progress per user to DB', status:'pending', tag:'backend' },
+      { id:'f26', name:'Railway deployment', desc:'Backend live on Railway with env vars', status:'pending', tag:'infra' },
+      { id:'f27', name:'Vercel deployment', desc:'Frontend live on Vercel with env vars', status:'pending', tag:'infra' },
+    ]
+  },
+  {
+    id: 'phase2',
+    label: 'Phase 2 — v1.1 (6 weeks post-MVP)',
+    target: 'Target: 6 weeks after MVP launch',
+    icon: '📈',
+    features: [
+      { id:'f28', name:'Survey report interpreter (R-06)', desc:'POST /legal/survey + PDF upload, severity categorisation', status:'done', tag:'backend' },
+      { id:'f29', name:'Survey interpreter UI', desc:'Stage 4 tab — upload survey, see categorised findings', status:'pending', tag:'frontend' },
+      { id:'f30', name:'Comparable price analysis (R-08)', desc:'Land Registry data integration for sold price context', status:'pending', tag:'backend' },
+      { id:'f31', name:'Comparable price UI', desc:'Stage 3 — price comparison display', status:'pending', tag:'frontend' },
+      { id:'f32', name:'Negotiation coach (R-09)', desc:'POST /offer/negotiate → offer script, leverage points', status:'pending', tag:'backend' },
+      { id:'f33', name:'Negotiation UI', desc:'Stage 3 page — situation form + negotiation output', status:'pending', tag:'frontend' },
+      { id:'f34', name:'Viewing question generator (R-12)', desc:'Tailored question list from listing analysis', status:'pending', tag:'backend' },
+    ]
+  },
+  {
+    id: 'phase3',
+    label: 'Phase 3 — v2.0 (6 months post-launch)',
+    target: 'Target: 6 months after launch',
+    icon: '🔮',
+    features: [
+      { id:'f35', name:'Mortgage eligibility estimator (R-11)', desc:'Pending legal/FCA review', status:'pending', tag:'backend' },
+      { id:'f36', name:'Remortgage planner (R-13)', desc:'Alert + options when initial deal ends', status:'pending', tag:'backend' },
+      { id:'f37', name:'Property comparison tracker (R-14)', desc:'Side-by-side saved properties', status:'pending', tag:'frontend' },
+      { id:'f38', name:'Mobile app', desc:'iOS/Android — v2 if usage patterns warrant it', status:'pending', tag:'infra' },
+    ]
+  }
+];
+
+const DAILY_LOG = [
+  {
+    date: '2026-06-25',
+    items: [
+      { type: 'infra',   text: 'Saved Anthropic API key to backend/.env' },
+      { type: 'infra',   text: 'Created .gitignore — .env files excluded from version control' },
+      { type: 'infra',   text: 'Provisioned Supabase project, retrieved URL + service key + anon key' },
+      { type: 'infra',   text: 'Resolved DATABASE_URL — switched from direct connection (DNS issue) to session pooler (aws-0-eu-west-1)' },
+      { type: 'backend', text: 'Fixed Python 3.13 incompatibility — switched venv to Python 3.12, updated asyncpg to 0.31.0' },
+      { type: 'backend', text: 'Fixed SQLAlchemy reserved attribute conflict — renamed Journey.metadata → journey_metadata' },
+      { type: 'backend', text: 'Initialised Alembic with async template, wired env.py to load .env and import all models' },
+      { type: 'backend', text: 'Generated and applied initial migration — users, journeys, analyses, checklist_items tables created in Supabase' },
+      { type: 'infra',   text: 'Installed Node.js 26 via Homebrew, ran npm install for frontend' },
+      { type: 'setup',   text: 'Populated frontend/.env.local with Supabase URL and anon key' },
+    ]
+  }
+];
+
+const NEXT_STEPS = [
+  {
+    label: 'Start the local dev servers',
+    sub: 'backend: venv/bin/uvicorn main:app --reload  |  frontend: npm run dev',
+  },
+  {
+    label: 'Build Stage 1 — Cost Calculator UI',
+    sub: 'Create frontend/src/pages/ReadinessPage.tsx — form → POST /readiness/costs → display breakdown',
+  },
+  {
+    label: 'Build Stage 4 — Legal Document UI',
+    sub: 'Create LegalPage.tsx with paste + PDF upload, wire to existing /legal/document endpoints',
+  },
+  {
+    label: 'Add user auth (Supabase Auth)',
+    sub: 'Backend JWT middleware + frontend login/signup pages + protected routes',
+  },
+  {
+    label: 'Wire journey persistence',
+    sub: 'Save stage progress to journeys table per user, load on app start',
+  },
+  {
+    label: 'Deploy MVP to Railway + Vercel',
+    sub: 'Set production env vars, test end-to-end on live URLs',
+  },
+];
+
+/* ── RENDER ────────────────────────────────────────────────────────────── */
+
+function statusClass(s) {
+  if (s === 'done') return 'done';
+  if (s === 'partial') return 'partial';
+  return '';
+}
+
+function statusBadgeHtml(s) {
+  if (s === 'done')    return '<span class="badge badge-green">Done</span>';
+  if (s === 'partial') return '<span class="badge badge-amber">In progress</span>';
+  return '<span class="badge badge-gray">Pending</span>';
+}
+
+function tagColor(t) {
+  const map = { backend:'badge-blue', frontend:'badge-blue', infra:'badge-gray', fix:'badge-red' };
+  return map[t] || 'badge-gray';
+}
+
+function checkHtml(s) {
+  if (s === 'done')    return '<div class="check done">✓</div>';
+  if (s === 'partial') return '<div class="check partial">~</div>';
+  return '<div class="check"></div>';
+}
+
+// Build milestone cards
+const milestoneList = document.getElementById('milestone-list');
+PHASES.forEach(phase => {
+  const done    = phase.features.filter(f => f.status === 'done').length;
+  const partial = phase.features.filter(f => f.status === 'partial').length;
+  const total   = phase.features.length;
+  const pct     = Math.round(((done + partial * 0.5) / total) * 100);
+
+  const phaseStatus = done === total ? 'done' : done > 0 || partial > 0 ? 'active' : 'pending';
+
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = `
+    <div class="card-header" onclick="toggleCard('${phase.id}')">
+      <div class="card-header-left">
+        <div class="phase-icon ${phaseStatus}">${phase.icon}</div>
+        <div>
+          <div class="card-title">${phase.label}</div>
+          <div class="card-subtitle">${phase.target} · ${done}/${total} done</div>
+        </div>
+      </div>
+      <div class="card-header-right">
+        ${phaseStatus === 'done' ? '<span class="badge badge-green">Complete</span>' :
+          phaseStatus === 'active' ? '<span class="badge badge-amber">In progress</span>' :
+          '<span class="badge badge-gray">Pending</span>'}
+        <span class="toggle-arrow" id="arrow-${phase.id}">▼</span>
+      </div>
+    </div>
+    <div class="card-body${phaseStatus === 'pending' ? ' collapsed' : ''}" id="body-${phase.id}">
+      ${phase.features.map(f => `
+        <div class="feature-row">
+          <div class="check-wrap">${checkHtml(f.status)}</div>
+          <div class="feature-text">
+            <div class="feature-name">${f.name}</div>
+            <div class="feature-desc">${f.desc}</div>
+          </div>
+          <span class="feature-tag badge ${tagColor(f.tag)}">${f.tag}</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
+  milestoneList.appendChild(card);
+});
+
+// Build daily log
+const logList = document.getElementById('log-list');
+let totalEntries = 0;
+DAILY_LOG.forEach(day => {
+  totalEntries += day.items.length;
+  const isToday = day.date === TODAY;
+  const formatted = new Date(day.date + 'T12:00:00').toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  entry.innerHTML = `
+    <div class="log-date-header">
+      📅 ${formatted}
+      ${isToday ? '<span class="today-pill">Today</span>' : ''}
+    </div>
+    ${day.items.map(item => `
+      <div class="log-item">
+        <div class="log-dot ${item.type}"></div>
+        <div class="log-text">${item.text}</div>
+      </div>
+    `).join('')}
+  `;
+  logList.appendChild(entry);
+});
+document.getElementById('log-count').textContent = totalEntries + ' entries';
+
+// Build next steps
+const nextList = document.getElementById('next-list');
+NEXT_STEPS.forEach((s, i) => {
+  const div = document.createElement('div');
+  div.className = 'next-item';
+  div.innerHTML = `
+    <div class="next-num">${i+1}</div>
+    <div>
+      <div class="next-text">${s.label}</div>
+      <div class="next-sub">${s.sub}</div>
+    </div>
+  `;
+  nextList.appendChild(div);
+});
+
+// Progress stats
+const allFeatures = PHASES.flatMap(p => p.features);
+const doneCount = allFeatures.filter(f => f.status === 'done').length;
+const partialCount = allFeatures.filter(f => f.status === 'partial').length;
+const totalCount = allFeatures.length;
+const pct = Math.round(((doneCount + partialCount * 0.5) / totalCount) * 100);
+
+document.getElementById('done-count').textContent = doneCount;
+document.getElementById('total-count').textContent = totalCount;
+document.getElementById('progress-fill').style.width = pct + '%';
+document.getElementById('progress-pct').textContent = pct + '% complete';
+
+// Phase status sidebar
+const phaseStatus = document.getElementById('phase-status');
+PHASES.forEach(phase => {
+  const done = phase.features.filter(f => f.status === 'done').length;
+  const total = phase.features.length;
+  const phasePct = Math.round((done / total) * 100);
+  const div = document.createElement('div');
+  div.style.cssText = 'font-size:12px;';
+  div.innerHTML = `
+    <div style="display:flex;justify-content:space-between;margin-bottom:4px;color:var(--text)">
+      <span>${phase.icon} ${phase.label.split(' — ')[0]}</span>
+      <span style="color:var(--text-muted)">${done}/${total}</span>
+    </div>
+    <div style="background:var(--gray-200);border-radius:99px;height:4px;overflow:hidden">
+      <div style="height:100%;border-radius:99px;background:var(--brand);width:${phasePct}%"></div>
+    </div>
+  `;
+  phaseStatus.appendChild(div);
+});
+
+/* ── INTERACTIONS ──────────────────────────────────────────────────────── */
+
+function toggleCard(id) {
+  const body = document.getElementById('body-' + id);
+  const arrow = document.getElementById('arrow-' + id);
+  if (body.classList.contains('collapsed')) {
+    body.classList.remove('collapsed');
+    arrow.style.transform = 'rotate(0deg)';
+  } else {
+    body.classList.add('collapsed');
+    arrow.style.transform = 'rotate(-90deg)';
+  }
+}
+</script>
+</body>
+</html>

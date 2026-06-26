@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__visualize__read_me",
+      "mcp__visualize__show_widget",
+      "Bash(/Users/federicodilucia/Desktop/homeready/backend/venv/bin/python3 -c ' *)",
+      "Bash(/Users/federicodilucia/Desktop/homeready/backend/venv/bin/pip install *)",
+      "Bash(venv/bin/uvicorn main:app --reload --port 8000)",
+      "Bash(curl -s http://localhost:8000/api/v1/health)",
+      "Bash(/opt/homebrew/bin/npm run *)",
+      "Read(//tmp/**)",
+      "Bash(/opt/homebrew/bin/npx tsc *)",
+      "Bash(./node_modules/.bin/tsc --noEmit)",
+      "Bash(curl -s -X POST http://localhost:8000/api/v1/readiness/costs -H 'Content-Type: application/json' -d '{\"property_price\": 350000, \"postcode\": \"SW1A 1AA\", \"is_first_time_buyer\": true, \"deposit_amount\": 35000}')",
+      "Bash(python3 -m json.tool)",
+      "Bash(pkill -f \"uvicorn main:app\")",
+      "Bash(venv/bin/python3 -c ' *)",
+      "Bash(curl -s -X POST http://localhost:8000/api/v1/legal/document/upload -F 'file=@/Users/federicodilucia/Library/CloudStorage/OneDrive-Personal/UK/house_belsize_park/[completed]AST Flat 1C, 23 Belsize Park, NW3 4DU Federico.pdf;type=application/pdf' -F document_type=draft_contract)",
+      "Bash(curl -v -X POST http://localhost:8000/api/v1/legal/document/upload -F 'file=@/Users/federicodilucia/Library/CloudStorage/OneDrive-Personal/UK/house_belsize_park/[completed]AST Flat 1C, 23 Belsize Park, NW3 4DU Federico.pdf;type=application/pdf' -F document_type=draft_contract)",
+      "Bash(cp \"/Users/federicodilucia/Library/CloudStorage/OneDrive-Personal/UK/house_belsize_park/[completed]AST Flat 1C, 23 Belsize Park, NW3 4DU Federico.pdf\" /tmp/test_contract.pdf)",
+      "Bash(curl -s -X POST http://localhost:8000/api/v1/legal/document/upload -F 'file=@/tmp/test_contract.pdf;type=application/pdf' -F document_type=draft_contract)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('summary:', d.get\\('summary',''\\)[:150]\\); print\\('clauses:', len\\(d.get\\('clauses',[]\\)\\)\\); print\\('actions:', len\\(d.get\\('action_items',[]\\)\\)\\);print\\('questions:', len\\(d.get\\('questions_for_solicitor',[]\\)\\)\\)\")",
+      "Bash(npm list *)",
+      "Bash(npx tsc *)",
+      "Bash(npx vite *)"
+    ]
+  }
+}

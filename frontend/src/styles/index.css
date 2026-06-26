@@ -1,0 +1,149 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    font-family: 'Inter', sans-serif;
+    color: #1E1030;
+    background: transparent;
+  }
+}
+
+@layer components {
+  /* Background wash — fixed behind everything */
+  .bg-wash {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse 60% 50% at 15% 20%, rgba(180,155,225,0.20) 0%, transparent 100%),
+      radial-gradient(ellipse 50% 60% at 80% 75%, rgba(240,210,180,0.16) 0%, transparent 100%),
+      linear-gradient(135deg, #E8E0F5 0%, #F2EDF8 40%, #EDE4F0 70%, #F5EEE8 100%);
+  }
+
+  /* Glass card — used for nav, sidebar, decorative panels */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.46);
+    border-top: 1px solid rgba(255, 255, 255, 0.84);
+    border-left: 1px solid rgba(255, 255, 255, 0.74);
+    border-right: 1px solid rgba(255, 255, 255, 0.32);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.32);
+    border-radius: 18px;
+    backdrop-filter: blur(24px) saturate(1.4);
+    -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  }
+
+  /* Solid card — used for content: forms, results, data */
+  .solid-card {
+    background: rgba(255, 255, 255, 0.82);
+    border: 1px solid rgba(255, 255, 255, 0.60);
+    border-radius: 14px;
+  }
+
+  /* Stage pill */
+  .stage-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(130, 100, 200, 0.12);
+    border: 1px solid rgba(130, 100, 200, 0.20);
+    border-radius: 9999px;
+    padding: 3px 10px;
+    font-size: 11px;
+    font-weight: 500;
+    color: #4A3280;
+  }
+
+  .stage-pill-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #7B55C8;
+    flex-shrink: 0;
+  }
+
+  /* Primary button */
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(91, 61, 174, 0.88);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 10px;
+    color: white;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .btn-primary:hover:not(:disabled) { background: rgba(91, 61, 174, 1.0); transform: scale(1.01); }
+  .btn-primary:active:not(:disabled) { transform: scale(0.98); }
+  .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+
+  /* Ghost button */
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.40);
+    border: 1px solid rgba(130, 100, 200, 0.25);
+    border-radius: 10px;
+    color: #4A3280;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-ghost:hover { background: rgba(255, 255, 255, 0.65); }
+
+  /* Input */
+  .glass-input {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.50);
+    border-top: 1px solid rgba(255, 255, 255, 0.84);
+    border-left: 1px solid rgba(255, 255, 255, 0.74);
+    border-right: 1px solid rgba(200, 190, 220, 0.40);
+    border-bottom: 1px solid rgba(200, 190, 220, 0.40);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 14px;
+    color: #1E1030;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .glass-input::placeholder { color: #8B7AAA; }
+  .glass-input:focus {
+    border-color: rgba(123, 85, 200, 0.50);
+    box-shadow: 0 0 0 3px rgba(123, 85, 200, 0.10);
+  }
+
+  /* Progress bar */
+  .progress-track {
+    background: rgba(130, 100, 200, 0.15);
+    height: 4px;
+    border-radius: 9999px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: #7B55C8;
+    border-radius: 9999px;
+    transition: width 0.4s ease;
+  }
+
+  /* Fade-in animation for results */
+  @media (prefers-reduced-motion: no-preference) {
+    .animate-results {
+      animation: fadeSlideUp 0.3s ease-out both;
+    }
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  }
+}

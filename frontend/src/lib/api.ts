@@ -1,0 +1,101 @@
+import axios from 'axios'
+import type {
+  CostCalculatorResult,
+  ListingDecoderResult,
+  DocumentExplainerResult,
+  SurveyInterpreterResult,
+  JourneyStage,
+  ChecklistItem,
+} from '@/types'
+import { supabase } from './supabase'
+
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:8000',
+  headers: { 'Content-Type': 'application/json' },
+})
+
+// Attach Supabase JWT to every request when signed in
+api.interceptors.request.use(async config => {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (session?.access_token) {
+    config.headers.Authorization = `Bearer ${session.access_token}`
+  }
+  return config
+})
+
+// ── Journey ────────────────────────────────────────────────────────────────
+export const getJourneyStages = (): Promise<{ stages: JourneyStage[] }> =>
+  api.get('/api/v1/journey/stages').then(r => r.data)
+
+// ── Stage 1: Cost Calculator ───────────────────────────────────────────────
+export interface CostCalcInput {
+  property_price: number
+  postcode: string
+  is_first_time_buyer: boolean
+  deposit_amount: number
+}
+export const calculateCosts = (data: CostCalcInput): Promise<CostCalculatorResult> =>
+  api.post('/api/v1/readiness/costs', data).then(r => r.data)
+
+// ── Stage 2: Listing Decoder ───────────────────────────────────────────────
+export interface ListingInput {
+  listing_text: string
+  property_type?: string
+}
+export const decodeListing = (data: ListingInput): Promise<ListingDecoderResult> =>
+  api.post('/api/v1/evaluate/listing', data).then(r => r.data)
+
+// ── Stage 4: Document Explainer ────────────────────────────────────────────
+export interface DocInput {
+  document_text: string
+  document_type: string
+}
+export const explainDocument = (data: DocInput): Promise<DocumentExplainerResult> =>
+  api.post('/api/v1/legal/document', data).then(r => r.data)
+
+export const uploadDocument = (file: File, documentType: string): Promise<DocumentExplainerResult> => {
+  const form = new FormData()
+  form.append('file', file)
+  form.append('document_type', documentType)
+  return api.post('/api/v1/legal/document/upload', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }).then(r => r.data)
+}
+
+// ── Stage 4: Survey Interpreter ────────────────────────────────────────────
+export const uploadSurvey = (file: File, surveyLevel: string): Promise<SurveyInterpreterResult> => {
+  const form = new FormData()
+  form.append('file', file)
+  form.append('survey_level', surveyLevel)
+  return api.post('/api/v1/legal/survey/upload', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }).then(r => r.data)
+}
+
+export default api
+
+// ── Stage 2: Neighbourhood Agent ───────────────────────────────────────────
+import type { NeighbourhoodResult } from '@/types'
+
+export interface NeighbourhoodInput {
+  postcode: string
+  buyer_priorities?: string[]
+}
+
+export const getNeighbourhoodBriefing = (
+  data: NeighbourhoodInput
+): Promise<NeighbourhoodResult> =>
+  api.post('/api/v1/evaluate/neighbourhood', data).then(r => r.data)
+
+// ── Checklist ───────────────────────────────────────────────────────────────
+export interface ChecklistResponse {
+  items: ChecklistItem[]
+  total: number
+  complete: number
+}
+
+export const getChecklist = (): Promise<ChecklistResponse> =>
+  api.get('/api/v1/checklist').then(r => r.data)
+
+export const toggleChecklistItem = (id: string, is_complete: boolean): Promise<ChecklistItem> =>
+  api.patch(`/api/v1/checklist/${id}`, { is_complete }).then(r => r.data)
