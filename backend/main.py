@@ -42,3 +42,7 @@ async def startup():
 @app.get("/")
 async def root():
     return {"message": "HomeReady API", "docs": "/docs"}
+
+@app.get("/debug/cors")
+async def debug_cors():
+    return {"cors_origins": settings.cors_origins_list}
