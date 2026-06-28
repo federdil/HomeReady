@@ -93,16 +93,21 @@ async def save_property(
     db: AsyncSession = Depends(get_db),
     user_id: str = Depends(get_current_user),
 ):
-    from app.models.models import SavedProperty
-    import uuid
-    prop = SavedProperty(
-        user_id=uuid.UUID(user_id),
-        **req.model_dump(),
-    )
-    db.add(prop)
-    await db.commit()
-    await db.refresh(prop)
-    return prop
+    try:
+        from app.models.models import SavedProperty
+        import uuid
+        prop = SavedProperty(
+            user_id=uuid.UUID(user_id),
+            **req.model_dump(),
+        )
+        db.add(prop)
+        await db.commit()
+        await db.refresh(prop)
+        return prop
+    except Exception as e:
+        import structlog
+        structlog.get_logger().error("save_property_error", error=repr(e))
+        raise HTTPException(status_code=500, detail=f"{type(e).__name__}: {str(e)[:300]}")
 
 
 @router.get("/properties", response_model=list[SavedPropertyResponse])
