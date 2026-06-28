@@ -89,7 +89,7 @@ export default function EvaluatePage() {
               className="glass-input resize-none" />
           </FormField>
 
-          <div className="flex gap-4 items-end">
+          <div className="flex flex-col sm:flex-row gap-4 sm:items-end">
             <FormField label="Property type (optional)">
               <select {...register('property_type')} className="glass-input">
                 <option value="">Select…</option>
@@ -99,7 +99,7 @@ export default function EvaluatePage() {
                 <option value="studio">Studio</option>
               </select>
             </FormField>
-            <PrimaryButton type="submit" loading={mutation.isPending} className="mb-0 self-end">
+            <PrimaryButton type="submit" loading={mutation.isPending} className="sm:mb-0 sm:self-end w-full sm:w-auto">
               {mutation.isPending ? 'Decoding…' : 'Decode listing'}
             </PrimaryButton>
           </div>

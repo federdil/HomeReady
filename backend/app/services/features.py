@@ -9,6 +9,7 @@ from app.prompts.prompts import (
     LISTING_DECODER_SYSTEM,
     DOCUMENT_SYSTEM,
     SURVEY_SYSTEM,
+    NEGOTIATION_SYSTEM,
     cost_calculator_prompt,
     listing_decoder_prompt,
     document_explainer_prompt,
@@ -20,6 +21,7 @@ from app.models.schemas import (
     ListingDecoderRequest, ListingDecoderResponse,
     DocumentExplainerRequest, DocumentExplainerResponse,
     SurveyInterpreterRequest, SurveyInterpreterResponse,
+    OfferStrategyRequest, OfferStrategyResponse,
 )
 import structlog
 
@@ -79,6 +81,24 @@ async def interpret_survey(req: SurveyInterpreterRequest) -> SurveyInterpreterRe
     )
     data = _parse_json(raw, "survey_interpreter")
     return SurveyInterpreterResponse(**data)
+
+
+# ── Offer Strategy ────────────────────────────────────────────────────────
+async def get_offer_strategy(req: OfferStrategyRequest) -> OfferStrategyResponse:
+    prompt = negotiation_coach_prompt(
+        asking_price=req.asking_price,
+        property_type=req.property_type,
+        weeks_on_market=req.weeks_on_market,
+        chain_status=req.chain_status,
+        buyer_position=req.buyer_position,
+        survey_outcome=req.survey_outcome,
+        estimated_repair_cost=req.estimated_repair_cost,
+        seller_situation=req.seller_situation,
+        comparable_prices=req.comparable_prices,
+    )
+    raw = await ask_claude(prompt, system=NEGOTIATION_SYSTEM, max_tokens=2048)
+    data = _parse_json(raw, "offer_strategy")
+    return OfferStrategyResponse(**data)
 
 
 # ── Journey stage defaults ─────────────────────────────────────────────────

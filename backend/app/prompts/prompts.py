@@ -159,29 +159,54 @@ Categories:
 
 
 # ── Negotiation Coach ──────────────────────────────────────────────────────
+NEGOTIATION_SYSTEM = BASE_SYSTEM + """
+
+You are an expert UK property negotiator with deep knowledge of the London and wider UK market. You understand buyer leverage, vendor psychology, and how to structure offers to maximise success for first-time buyers. Be direct, specific, and honest — including when the buyer has weak leverage."""
+
+
 def negotiation_coach_prompt(
     asking_price: float,
-    survey_findings: list[str],
-    days_on_market: int,
+    property_type: str,
+    weeks_on_market: int | None,
     chain_status: str,
     buyer_position: str,
+    survey_outcome: str | None,
+    estimated_repair_cost: float | None,
+    seller_situation: str | None,
+    comparable_prices: str | None,
 ) -> str:
-    return f"""Create a negotiation strategy for this first-time buyer.
+    lines = [
+        f"- Asking price: £{asking_price:,.0f}",
+        f"- Property type: {property_type}",
+        f"- Weeks on market: {weeks_on_market if weeks_on_market is not None else 'unknown'}",
+        f"- Seller chain status: {chain_status}",
+        f"- Buyer position: {buyer_position}",
+        f"- Survey outcome: {survey_outcome or 'not yet carried out'}",
+    ]
+    if estimated_repair_cost:
+        lines.append(f"- Estimated repair cost from survey: £{estimated_repair_cost:,.0f}")
+    if seller_situation:
+        lines.append(f"- Seller situation: {seller_situation}")
+    if comparable_prices:
+        lines.append(f"- Comparable sold prices: {comparable_prices}")
+
+    return f"""Create a detailed negotiation strategy for this first-time UK buyer.
 
 Property details:
-- Asking price: £{asking_price:,.0f}
-- Days on market: {days_on_market}
-- Seller's chain status: {chain_status}
-- Buyer position: {buyer_position}
-- Survey findings to leverage: {', '.join(survey_findings) if survey_findings else 'None yet'}
+{chr(10).join(lines)}
 
-Return a JSON object:
+Return a JSON object with this exact structure:
 {{
-  "recommended_offer": <number>,
-  "offer_rationale": "<why this number is justified>",
-  "opening_script": "<exact wording for the offer call or email>",
-  "leverage_points": ["<specific factors that strengthen the buyer's negotiating position>"],
-  "likely_counter": "<what the seller is likely to come back with>",
-  "walkaway_price": <number: the maximum price the buyer should pay>,
-  "negotiation_tips": ["<tactical advice specific to this situation>"]
+  "recommended_offer": <integer: the specific offer amount you recommend>,
+  "offer_range": {{
+    "low": <integer: floor — the lowest defensible offer>,
+    "high": <integer: ceiling — the most they should pay>
+  }},
+  "offer_rationale": "<2-3 sentences explaining why this figure is justified given the specific context>",
+  "leverage_points": ["<specific factors that give this buyer negotiating power — be concrete>"],
+  "conditions_to_include": ["<non-price conditions to attach to the offer, e.g. fixtures, completion date, survey contingency>"],
+  "opening_script": "<exact wording for the offer call or email — ready to use, first person, professional>",
+  "likely_counter": "<realistic assessment of how the seller is likely to respond>",
+  "walkaway_price": <integer: the absolute maximum they should pay — be disciplined>,
+  "negotiation_tips": ["<tactical advice specific to this situation, 3-5 tips>"]
 }}"""

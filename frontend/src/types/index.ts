@@ -138,6 +138,24 @@ export interface NeighbourhoodResult {
   data_sources: string[]
 }
 
+// ── Offer Strategy ────────────────────────────────────────────────────────
+export interface OfferRange {
+  low: number
+  high: number
+}
+
+export interface OfferStrategyResult {
+  recommended_offer: number
+  offer_range: OfferRange
+  offer_rationale: string
+  leverage_points: string[]
+  conditions_to_include: string[]
+  opening_script: string
+  likely_counter: string
+  walkaway_price: number
+  negotiation_tips: string[]
+}
+
 // ── Checklist ────────────────────────────────────────────────────────────────
 export interface ChecklistItem {
   id: string

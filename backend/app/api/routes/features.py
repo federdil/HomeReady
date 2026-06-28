@@ -12,10 +12,12 @@ from app.models.schemas import (
     ListingDecoderRequest, ListingDecoderResponse,
     DocumentExplainerRequest, DocumentExplainerResponse,
     SurveyInterpreterRequest, SurveyInterpreterResponse,
+    OfferStrategyRequest, OfferStrategyResponse,
 )
 from app.services.features import (
     calculate_costs, decode_listing,
     explain_document, interpret_survey,
+    get_offer_strategy,
 )
 import pypdf
 import io
@@ -55,6 +57,15 @@ def _handle_claude_error(e: Exception) -> None:
 async def get_cost_breakdown(req: CostCalculatorRequest):
     try:
         return await calculate_costs(req)
+    except Exception as e:
+        _handle_claude_error(e)
+
+
+# ── Stage 3: Offer Strategy ───────────────────────────────────────────────
+@router.post("/offer/strategy", response_model=OfferStrategyResponse)
+async def create_offer_strategy(req: OfferStrategyRequest):
+    try:
+        return await get_offer_strategy(req)
     except Exception as e:
         _handle_claude_error(e)
 

@@ -4,6 +4,7 @@ import type {
   ListingDecoderResult,
   DocumentExplainerResult,
   SurveyInterpreterResult,
+  OfferStrategyResult,
   JourneyStage,
   ChecklistItem,
 } from '@/types'
@@ -59,6 +60,21 @@ export interface ListingInput {
 }
 export const decodeListing = (data: ListingInput): Promise<ListingDecoderResult> =>
   api.post('/api/v1/evaluate/listing', data).then(r => r.data)
+
+// ── Stage 3: Offer Strategy ────────────────────────────────────────────────
+export interface OfferStrategyInput {
+  asking_price: number
+  property_type: string
+  weeks_on_market?: number
+  chain_status: string
+  buyer_position: string
+  survey_outcome?: string
+  estimated_repair_cost?: number
+  seller_situation?: string
+  comparable_prices?: string
+}
+export const getOfferStrategy = (data: OfferStrategyInput): Promise<OfferStrategyResult> =>
+  api.post('/api/v1/offer/strategy', data).then(r => r.data)
 
 // ── Stage 4: Document Explainer ────────────────────────────────────────────
 export interface DocInput {

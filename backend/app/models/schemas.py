@@ -114,6 +114,34 @@ class SurveyInterpreterResponse(BaseModel):
     estimated_remediation_cost: Optional[str] = None
 
 
+# ── Feature: Offer Strategy ───────────────────────────────────────────────
+class OfferStrategyRequest(BaseModel):
+    asking_price: float = Field(..., gt=0)
+    property_type: str = "house"
+    weeks_on_market: Optional[int] = None
+    chain_status: str = "unknown"
+    buyer_position: str = "mortgage_agreed"
+    survey_outcome: Optional[str] = None
+    estimated_repair_cost: Optional[float] = None
+    seller_situation: Optional[str] = None
+    comparable_prices: Optional[str] = None
+
+class OfferRange(BaseModel):
+    low: int
+    high: int
+
+class OfferStrategyResponse(BaseModel):
+    recommended_offer: int
+    offer_range: OfferRange
+    offer_rationale: str
+    leverage_points: list[str]
+    conditions_to_include: list[str]
+    opening_script: str
+    likely_counter: str
+    walkaway_price: int
+    negotiation_tips: list[str]
+
+
 # ── Journey stage update ──────────────────────────────────────────────────
 class StageUpdateRequest(BaseModel):
     stage: JourneyStage

@@ -87,9 +87,9 @@ export function GhostButton({
 // ── PageHeader ───────────────────────────────────────────────────────────────
 export function PageHeader({ stage, title, description }: { stage: string; title: string; description: string }) {
   return (
-    <div className="mb-8">
+    <div className="mb-6 md:mb-8">
       <StagePill label={stage} />
-      <h1 className="font-display text-3xl text-plum mt-2 mb-2">{title}</h1>
+      <h1 className="font-display text-2xl md:text-3xl text-plum mt-2 mb-2">{title}</h1>
       <p className="text-plum-soft text-sm max-w-xl leading-relaxed">{description}</p>
     </div>
   )
