@@ -469,7 +469,7 @@
     <section class="section" id="milestones">
       <div class="section-header">
         <div class="section-title">Project milestones</div>
-        <span class="badge badge-blue">3 phases</span>
+        <span class="badge badge-blue">5 phases</span>
       </div>
       <div id="milestone-list" style="display:flex;flex-direction:column;gap:12px"></div>
     </section>
@@ -522,6 +522,25 @@ const PHASES = [
       { id:'f08', name:'Claude API integration', desc:'ask_claude(), ask_claude_with_tools() wrappers', status:'done', tag:'backend' },
       { id:'f09', name:'Anthropic API key', desc:'sk-ant-... saved to backend .env', status:'done', tag:'infra' },
       { id:'f10', name:'.gitignore', desc:'.env files excluded from version control', status:'done', tag:'infra' },
+    ]
+  },
+  {
+    id: 'phase05',
+    label: 'Phase 0.5 — Technical Quality (before more features)',
+    target: 'Target: complete before Phase 1 UI build continues',
+    icon: '🛡️',
+    features: [
+      // Priority 1: Auth end-to-end
+      { id:'q01', name:'Supabase Auth — backend JWT middleware', desc:'Verify token on every protected route; use Supabase Python client, not custom middleware', status:'done', tag:'backend' },
+      { id:'q02', name:'Supabase Auth — frontend context', desc:'AuthContext + useAuth hook; session persistence across page reloads', status:'done', tag:'frontend' },
+      { id:'q03', name:'Login / signup pages', desc:'Email+password forms, error states, redirect on success', status:'done', tag:'frontend' },
+      { id:'q04', name:'Protected routes', desc:'Redirect unauthenticated users to /login for all journey pages', status:'done', tag:'frontend' },
+      { id:'q05', name:'Journey persistence wired to auth', desc:'Save + load stage progress per authenticated user from journeys table', status:'pending', tag:'backend' },
+      // Priority 2: Claude API resilience
+      { id:'q06', name:'Claude wrapper — timeout + retry', desc:'30s timeout, exponential backoff (max 3 retries) on 529/overload responses for all Claude calls', status:'pending', tag:'backend' },
+      { id:'q07', name:'Claude wrapper — structured error responses', desc:'Return typed error shape to frontend on failure; never let exceptions bubble as 500s', status:'pending', tag:'backend' },
+      { id:'q08', name:'Frontend error states for all AI calls', desc:'Every Claude-calling page shows a user-facing error message on failure, not a silent spinner', status:'pending', tag:'frontend' },
+      { id:'q09', name:'PDF upload validation', desc:'File size limit (10MB), type check server-side, reject password-protected/image-only PDFs with clear message', status:'pending', tag:'backend' },
     ]
   },
   {
@@ -593,55 +612,29 @@ const DAILY_LOG = [
       { type: 'infra',   text: 'Installed Node.js 26 via Homebrew, ran npm install for frontend' },
       { type: 'setup',   text: 'Populated frontend/.env.local with Supabase URL and anon key' },
     ]
-  },
-  {
-    date: '2026-06-26',
-    items: [
-      { type: 'frontend', text: 'Completed full UI pass — Dusk Parchment design system applied to all 4 feature pages (Readiness, Evaluate, Neighbourhood, Legal)' },
-      { type: 'frontend', text: 'Built AuthPage — login/signup with tab toggle, email confirmation state, Dusk Parchment design' },
-      { type: 'frontend', text: 'Built AuthProvider + useAuth hook — Supabase session state, sign in/up/out' },
-      { type: 'frontend', text: 'Added RequireAuth guard — unauthenticated users redirected to /auth' },
-      { type: 'frontend', text: 'Added sign-out button + user email display in top nav' },
-      { type: 'frontend', text: 'Added axios interceptor — Supabase JWT attached to every API request automatically' },
-      { type: 'backend',  text: 'Built auth middleware — get_current_user() uses Supabase Admin client to verify tokens (no JWT secret required)' },
-      { type: 'backend',  text: 'Added GET /api/v1/auth/me endpoint' },
-      { type: 'backend',  text: 'Built POST-completion checklist — GET /api/v1/checklist seeds 16 default items on first access, PATCH toggles completion' },
-      { type: 'backend',  text: 'Added category column to checklist_items via Alembic migration' },
-      { type: 'backend',  text: 'Dropped FK constraint on checklist_items.user_id — uses Supabase auth UUID directly' },
-      { type: 'frontend', text: 'Built HomeownerPage — progress ring, 3 category sections (urgent/important/admin), optimistic toggle, deadline badges' },
-      { type: 'infra',    text: 'Created Procfile + runtime.txt for Railway backend deployment' },
-      { type: 'infra',    text: 'Created vercel.json for React Router client-side routing on Vercel' },
-      { type: 'infra',    text: 'Added tsconfig.json + tsconfig.node.json — fixed Vercel TypeScript build' },
-      { type: 'infra',    text: 'Backend deployed to Railway — https://homeready-production.up.railway.app' },
-      { type: 'infra',    text: 'Frontend deployed to Vercel — https://homeready-pied.vercel.app' },
-    ]
   }
 ];
 
 const NEXT_STEPS = [
   {
-    label: 'End-to-end testing on production',
-    sub: 'Test all 5 features on homeready-pied.vercel.app — sign up, cost calc, listing decoder, neighbourhood, document explainer, checklist',
+    label: '🛡️ [Priority 1] Wire auth end-to-end before building more UI',
+    sub: 'Backend JWT middleware (q01) → AuthContext + useAuth (q02) → login/signup pages (q03) → protected routes (q04) → journey persistence (q05)',
   },
   {
-    label: 'Wire journey persistence',
-    sub: 'Save stage progress to journeys table per user, load on app start so sidebar reflects real progress',
+    label: '🛡️ [Priority 2] Add Claude API resilience layer',
+    sub: 'Timeout + retry wrapper (q06) → structured error responses (q07) → frontend error states on all AI pages (q08) → PDF upload validation (q09)',
   },
   {
-    label: 'Stage 3 — Offer & Negotiation',
-    sub: 'AI assistant to help draft and evaluate offers, understand negotiation tactics',
+    label: 'Build Stage 1 — Cost Calculator UI',
+    sub: 'Create frontend/src/pages/ReadinessPage.tsx — form → POST /readiness/costs → display breakdown',
   },
   {
-    label: 'Stage 5 — Exchange & Completion',
-    sub: 'Guided checklist and explainer for the exchange and completion process',
+    label: 'Build Stage 4 — Legal Document UI',
+    sub: 'Create LegalPage.tsx with paste + PDF upload, wire to existing /legal/document endpoints',
   },
   {
-    label: 'Supabase email confirmation',
-    sub: 'Re-enable email confirmation in Supabase Auth before sharing with real users',
-  },
-  {
-    label: 'Custom domain',
-    sub: 'Point a custom domain at the Vercel deployment',
+    label: 'Deploy MVP to Railway + Vercel',
+    sub: 'Set production env vars, test end-to-end on live URLs',
   },
 ];
 

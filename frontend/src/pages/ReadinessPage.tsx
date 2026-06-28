@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useMutation } from '@tanstack/react-query'
 import { calculateCosts } from '@/lib/api'
+import { useMarkStage } from '@/lib/useMarkStage'
 import type { CostCalculatorResult, CostBreakdownItem } from '@/types'
 import { formatGBP, cn } from '@/lib/utils'
 import { SolidCard, PageHeader, PrimaryButton, FormField } from '@/components/ui'
@@ -63,6 +64,7 @@ function StatCard({ label, value, sub }: { label: string; value: string; sub?: s
 
 export default function ReadinessPage() {
   const [result, setResult] = useState<CostCalculatorResult | null>(null)
+  const markStage = useMarkStage()
 
   const { register, handleSubmit, watch, formState: { errors } } = useForm<FormInput>({
     resolver: zodResolver(schema),
@@ -76,7 +78,7 @@ export default function ReadinessPage() {
       postcode: data.postcode.trim().toUpperCase(),
       is_first_time_buyer: data.is_first_time_buyer,
     }),
-    onSuccess: setResult,
+    onSuccess: (data) => { setResult(data); markStage('readiness', 'complete') },
     onError: (err) => console.error('Cost calc error:', err),
   })
 

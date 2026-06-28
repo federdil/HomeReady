@@ -27,6 +27,9 @@ api.interceptors.request.use(async config => {
 export const getJourneyStages = (): Promise<{ stages: JourneyStage[] }> =>
   api.get('/api/v1/journey/stages').then(r => r.data)
 
+export const markStageProgress = (stage: string, status: 'in_progress' | 'complete') =>
+  api.patch('/api/v1/journey/stage', { stage, status }).then(r => r.data)
+
 // ── Stage 1: Cost Calculator ───────────────────────────────────────────────
 export interface CostCalcInput {
   property_price: number

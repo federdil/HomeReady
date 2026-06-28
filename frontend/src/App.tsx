@@ -66,7 +66,7 @@ function StageLink({ stage }: { stage: JourneyStage }) {
 
 function Sidebar({ stages }: { stages: JourneyStage[] }) {
   const doneCount = stages.filter(s => s.status === 'complete').length
-  const pct = Math.round((doneCount / stages.length) * 100)
+  const pct = stages.length > 0 ? Math.round((doneCount / stages.length) * 100) : 0
   return (
     <aside className="w-64 flex-shrink-0 flex flex-col gap-4 sticky top-0 h-screen overflow-y-auto py-6 px-4">
       <div className="glass-card px-4 py-4">

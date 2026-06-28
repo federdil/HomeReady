@@ -2,7 +2,10 @@
 All feature API routes.
 Pattern: thin route → service → Claude → response.
 """
-from fastapi import APIRouter, HTTPException, UploadFile, File
+from fastapi import APIRouter, HTTPException, UploadFile, File, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.database import get_db
+from app.core.auth import get_current_user, get_optional_user
 from app.models.schemas import (
     CostCalculatorRequest, CostCalculatorResponse,
     ListingDecoderRequest, ListingDecoderResponse,
@@ -98,10 +101,61 @@ async def interpret_uploaded_survey(
 
 # ── Journey ────────────────────────────────────────────────────────────────
 @router.get("/journey/stages")
-async def get_journey_stages():
-    """Return the default journey stage structure."""
+async def get_journey_stages(
+    db: AsyncSession = Depends(get_db),
+    user_id: str | None = Depends(get_optional_user),
+):
+    """Return journey stages with real progress if user is authenticated."""
     from app.services.features import STAGE_DEFAULTS
-    return {"stages": STAGE_DEFAULTS}
+    from sqlalchemy import select
+    from app.models.models import Journey
+    import copy
+
+    stages = copy.deepcopy(STAGE_DEFAULTS)
+
+    if user_id:
+        result = await db.execute(select(Journey).where(Journey.user_id == user_id))
+        journey = result.scalar_one_or_none()
+        if journey and journey.stage_statuses:
+            for stage in stages:
+                if stage["stage"] in journey.stage_statuses:
+                    stage["status"] = journey.stage_statuses[stage["stage"]]
+
+    return {"stages": stages}
+
+
+@router.patch("/journey/stage")
+async def update_journey_stage(
+    body: dict,
+    db: AsyncSession = Depends(get_db),
+    user_id: str = Depends(get_current_user),
+):
+    """Mark a stage as in_progress or complete for the authenticated user."""
+    from sqlalchemy import select
+    from app.models.models import Journey
+    import uuid
+
+    stage = body.get("stage")
+    status = body.get("status")
+    if not stage or status not in ("not_started", "in_progress", "complete"):
+        raise HTTPException(status_code=400, detail="Invalid stage or status")
+
+    result = await db.execute(select(Journey).where(Journey.user_id == user_id))
+    journey = result.scalar_one_or_none()
+
+    if not journey:
+        journey = Journey(
+            user_id=uuid.UUID(user_id),
+            stage_statuses={stage: status},
+        )
+        db.add(journey)
+    else:
+        statuses = dict(journey.stage_statuses or {})
+        statuses[stage] = status
+        journey.stage_statuses = statuses
+
+    await db.commit()
+    return {"ok": True, "stage": stage, "status": status}
 
 
 # ── Health ─────────────────────────────────────────────────────────────────

@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { useMutation } from '@tanstack/react-query'
 import { useDropzone } from 'react-dropzone'
 import { explainDocument, uploadDocument } from '@/lib/api'
+import { useMarkStage } from '@/lib/useMarkStage'
 import type { DocumentExplainerResult, DocumentClause } from '@/types'
 import { importanceColor, cn } from '@/lib/utils'
 import { SolidCard, PageHeader, PrimaryButton, FormField, RiskBadge } from '@/components/ui'
@@ -110,6 +111,7 @@ function PdfDropzone({ onResult, docType }: { onResult: (r: DocumentExplainerRes
 export default function LegalPage() {
   const [result, setResult] = useState<DocumentExplainerResult | null>(null)
   const [mode, setMode] = useState<'paste' | 'upload'>('paste')
+  const markStage = useMarkStage()
 
   const { register, handleSubmit, watch, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -120,7 +122,7 @@ export default function LegalPage() {
 
   const mutation = useMutation({
     mutationFn: explainDocument,
-    onSuccess: setResult,
+    onSuccess: (data) => { setResult(data); markStage('legal', 'complete') },
   })
 
   const criticalClauses = result?.clauses.filter(c => c.importance === 'critical') ?? []

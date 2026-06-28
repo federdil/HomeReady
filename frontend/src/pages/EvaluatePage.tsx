@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useMutation } from '@tanstack/react-query'
 import { decodeListing } from '@/lib/api'
+import { useMarkStage } from '@/lib/useMarkStage'
 import type { ListingDecoderResult } from '@/types'
 import { cn } from '@/lib/utils'
 import { SolidCard, GlassCard, PageHeader, PrimaryButton, FormField, RiskBadge } from '@/components/ui'
@@ -42,6 +43,7 @@ function severityToRiskLevel(s: string): 'low' | 'amber' | 'red' {
 
 export default function EvaluatePage() {
   const [result, setResult] = useState<ListingDecoderResult | null>(null)
+  const markStage = useMarkStage()
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -49,7 +51,7 @@ export default function EvaluatePage() {
 
   const mutation = useMutation({
     mutationFn: decodeListing,
-    onSuccess: setResult,
+    onSuccess: (data) => { setResult(data); markStage('evaluation', 'in_progress') },
   })
 
   return (

@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useMutation } from '@tanstack/react-query'
 import { getNeighbourhoodBriefing } from '@/lib/api'
+import { useMarkStage } from '@/lib/useMarkStage'
 import type { NeighbourhoodResult } from '@/types'
 import { cn } from '@/lib/utils'
 import { SolidCard, GlassCard, PageHeader, PrimaryButton, FormField, RiskBadge } from '@/components/ui'
@@ -92,12 +93,13 @@ function AgentThinking() {
 export default function NeighbourhoodPage() {
   const [result, setResult] = useState<NeighbourhoodResult | null>(null)
   const [selected, setSelected] = useState<string[]>([])
+  const markStage = useMarkStage()
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({ resolver: zodResolver(schema) })
 
   const mutation = useMutation({
     mutationFn: getNeighbourhoodBriefing,
-    onSuccess: setResult,
+    onSuccess: (data) => { setResult(data); markStage('evaluation', 'complete') },
   })
 
   const toggle = (v: string) => setSelected(p => p.includes(v) ? p.filter(x => x !== v) : [...p, v])

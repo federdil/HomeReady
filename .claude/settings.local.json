@@ -22,7 +22,25 @@
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('summary:', d.get\\('summary',''\\)[:150]\\); print\\('clauses:', len\\(d.get\\('clauses',[]\\)\\)\\); print\\('actions:', len\\(d.get\\('action_items',[]\\)\\)\\);print\\('questions:', len\\(d.get\\('questions_for_solicitor',[]\\)\\)\\)\")",
       "Bash(npm list *)",
       "Bash(npx tsc *)",
-      "Bash(npx vite *)"
+      "Bash(npx vite *)",
+      "WebFetch(domain:www.reddit.com)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(sed -i '' \"s|import { calculateCosts } from '@/lib/api'|import { calculateCosts, markStageProgress } from '@/lib/api'|\" /Users/federicodilucia/Desktop/homeready/frontend/src/pages/ReadinessPage.tsx)",
+      "Bash(sed -i '' \"s|onSuccess: setResult,|onSuccess: \\(data\\) => { setResult\\(data\\); markStageProgress\\('readiness', 'complete'\\) },|\" /Users/federicodilucia/Desktop/homeready/frontend/src/pages/ReadinessPage.tsx)",
+      "Bash(sed -i '' \"s|import { decodeListing } from '@/lib/api'|import { decodeListing, markStageProgress } from '@/lib/api'|\" /Users/federicodilucia/Desktop/homeready/frontend/src/pages/EvaluatePage.tsx)",
+      "Bash(sed -i '' \"s|onSuccess: setResult,|onSuccess: \\(data\\) => { setResult\\(data\\); markStageProgress\\('evaluation', 'in_progress'\\) },|\" /Users/federicodilucia/Desktop/homeready/frontend/src/pages/EvaluatePage.tsx)",
+      "Bash(sed -i '' \"s|import { getNeighbourhoodBriefing } from '@/lib/api'|import { getNeighbourhoodBriefing, markStageProgress } from '@/lib/api'|\" /Users/federicodilucia/Desktop/homeready/frontend/src/pages/NeighbourhoodPage.tsx)",
+      "Bash(sed -i '' \"s|import { calculateCosts, markStageProgress } from '@/lib/api'|import { calculateCosts } from '@/lib/api'\\\\nimport { useMarkStage } from '@/lib/useMarkStage'|\" /Users/federicodilucia/Desktop/homeready/frontend/src/pages/ReadinessPage.tsx)",
+      "Bash(sed -i '' \"s|import { decodeListing, markStageProgress } from '@/lib/api'|import { decodeListing } from '@/lib/api'\\\\nimport { useMarkStage } from '@/lib/useMarkStage'|\" /Users/federicodilucia/Desktop/homeready/frontend/src/pages/EvaluatePage.tsx)",
+      "Bash(sed -i '' \"s|import { getNeighbourhoodBriefing, markStageProgress } from '@/lib/api'|import { getNeighbourhoodBriefing } from '@/lib/api'\\\\nimport { useMarkStage } from '@/lib/useMarkStage'|\" /Users/federicodilucia/Desktop/homeready/frontend/src/pages/NeighbourhoodPage.tsx)",
+      "Bash(sed -i '' \"s|import { explainDocument, uploadDocument, markStageProgress } from '@/lib/api'|import { explainDocument, uploadDocument } from '@/lib/api'\\\\nimport { useMarkStage } from '@/lib/useMarkStage'|\" /Users/federicodilucia/Desktop/homeready/frontend/src/pages/LegalPage.tsx)",
+      "Bash(sed -i '' \"s|const \\\\[result, setResult\\\\] = useState<CostCalculatorResult | null>\\(null\\)|const [result, setResult] = useState<CostCalculatorResult | null>\\(null\\)\\\\n  const markStage = useMarkStage\\(\\)|\" /Users/federicodilucia/Desktop/homeready/frontend/src/pages/ReadinessPage.tsx)",
+      "Bash(sed -i '' \"s|onSuccess: \\(data\\) => { setResult\\(data\\); markStageProgress\\('readiness', 'complete'\\) },|onSuccess: \\(data\\) => { setResult\\(data\\); markStage\\('readiness', 'complete'\\) },|\" /Users/federicodilucia/Desktop/homeready/frontend/src/pages/ReadinessPage.tsx)",
+      "Bash(sed -i '' \"s|const \\\\[result, setResult\\\\] = useState<ListingDecoderResult | null>\\(null\\)|const [result, setResult] = useState<ListingDecoderResult | null>\\(null\\)\\\\n  const markStage = useMarkStage\\(\\)|\" /Users/federicodilucia/Desktop/homeready/frontend/src/pages/EvaluatePage.tsx)",
+      "Bash(sed -i '' \"s|onSuccess: \\(data\\) => { setResult\\(data\\); markStageProgress\\('evaluation', 'in_progress'\\) },|onSuccess: \\(data\\) => { setResult\\(data\\); markStage\\('evaluation', 'in_progress'\\) },|\" /Users/federicodilucia/Desktop/homeready/frontend/src/pages/EvaluatePage.tsx)",
+      "Bash(sed -i '' \"s|const \\\\[result, setResult\\\\] = useState<NeighbourhoodResult | null>\\(null\\)|const [result, setResult] = useState<NeighbourhoodResult | null>\\(null\\)\\\\n  const markStage = useMarkStage\\(\\)|\" /Users/federicodilucia/Desktop/homeready/frontend/src/pages/NeighbourhoodPage.tsx)"
     ]
   }
 }

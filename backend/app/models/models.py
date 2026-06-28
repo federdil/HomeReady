@@ -43,15 +43,13 @@ class Journey(Base):
     __tablename__ = "journeys"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)  # Supabase auth UUID, no FK
     current_stage: Mapped[JourneyStage] = mapped_column(
         Enum(JourneyStage), default=JourneyStage.READINESS
     )
-    stage_statuses: Mapped[dict] = mapped_column(JSON, default=dict)  # {stage: status}
-    journey_metadata: Mapped[dict] = mapped_column(JSON, default=dict)  # budget, target_area, etc.
+    stage_statuses: Mapped[dict] = mapped_column(JSON, default=dict)
+    journey_metadata: Mapped[dict] = mapped_column(JSON, default=dict)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    user: Mapped["User"] = relationship("User", back_populates="journey")
 
 
 # ── Analysis (stores AI results for any feature) ──────────────────────────
