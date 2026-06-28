@@ -23,6 +23,18 @@ api.interceptors.request.use(async config => {
   return config
 })
 
+// Extract user-friendly error message from API responses
+api.interceptors.response.use(
+  r => r,
+  err => {
+    const detail = err?.response?.data?.detail
+    if (detail && typeof detail === 'string') {
+      err.userMessage = detail
+    }
+    return Promise.reject(err)
+  }
+)
+
 // ── Journey ────────────────────────────────────────────────────────────────
 export const getJourneyStages = (): Promise<{ stages: JourneyStage[] }> =>
   api.get('/api/v1/journey/stages').then(r => r.data)

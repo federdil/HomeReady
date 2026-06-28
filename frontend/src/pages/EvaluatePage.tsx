@@ -106,7 +106,7 @@ export default function EvaluatePage() {
 
           {mutation.isError && (
             <p className="text-sm text-red-500 flex items-center gap-1.5">
-              <AlertTriangle className="w-4 h-4" /> Something went wrong. Please try again.
+              <AlertTriangle className="w-4 h-4" />{(mutation.error as any)?.userMessage ?? 'Something went wrong. Please try again.'}
             </p>
           )}
         </form>
