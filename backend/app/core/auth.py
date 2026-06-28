@@ -42,4 +42,4 @@ async def get_optional_user(
         response = client.auth.get_user(credentials.credentials)
         return str(response.user.id) if response.user else None
     except Exception:
-        return None
+        return None  # always swallow — optional auth never blocks the request

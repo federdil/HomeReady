@@ -114,12 +114,16 @@ async def get_journey_stages(
     stages = copy.deepcopy(STAGE_DEFAULTS)
 
     if user_id:
-        result = await db.execute(select(Journey).where(Journey.user_id == user_id))
-        journey = result.scalar_one_or_none()
-        if journey and journey.stage_statuses:
-            for stage in stages:
-                if stage["stage"] in journey.stage_statuses:
-                    stage["status"] = journey.stage_statuses[stage["stage"]]
+        try:
+            import uuid as _uuid
+            result = await db.execute(select(Journey).where(Journey.user_id == _uuid.UUID(user_id)))
+            journey = result.scalar_one_or_none()
+            if journey and journey.stage_statuses:
+                for stage in stages:
+                    if stage["stage"] in journey.stage_statuses:
+                        stage["status"] = journey.stage_statuses[stage["stage"]]
+        except Exception:
+            pass  # never break the sidebar over a persistence error
 
     return {"stages": stages}
 
@@ -140,7 +144,7 @@ async def update_journey_stage(
     if not stage or status not in ("not_started", "in_progress", "complete"):
         raise HTTPException(status_code=400, detail="Invalid stage or status")
 
-    result = await db.execute(select(Journey).where(Journey.user_id == user_id))
+    result = await db.execute(select(Journey).where(Journey.user_id == uuid.UUID(user_id)))
     journey = result.scalar_one_or_none()
 
     if not journey:
