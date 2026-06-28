@@ -52,7 +52,9 @@ def _handle_claude_error(e: Exception) -> None:
     """Convert ClaudeError to HTTPException, re-raise others."""
     if isinstance(e, ClaudeError):
         raise HTTPException(status_code=e.status_code, detail=e.user_message)
-    raise HTTPException(status_code=500, detail="Something went wrong. Please try again.")
+    import structlog
+    structlog.get_logger().error("unhandled_route_error", error=repr(e))
+    raise HTTPException(status_code=500, detail=f"Something went wrong: {type(e).__name__}: {str(e)[:200]}")
 
 
 # ── Stage 1: Financial Readiness ───────────────────────────────────────────
