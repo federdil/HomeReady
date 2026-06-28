@@ -535,12 +535,12 @@ const PHASES = [
       { id:'q02', name:'Supabase Auth — frontend context', desc:'AuthContext + useAuth hook; session persistence across page reloads', status:'done', tag:'frontend' },
       { id:'q03', name:'Login / signup pages', desc:'Email+password forms, error states, redirect on success', status:'done', tag:'frontend' },
       { id:'q04', name:'Protected routes', desc:'Redirect unauthenticated users to /login for all journey pages', status:'done', tag:'frontend' },
-      { id:'q05', name:'Journey persistence wired to auth', desc:'Save + load stage progress per authenticated user from journeys table', status:'pending', tag:'backend' },
+      { id:'q05', name:'Journey persistence wired to auth', desc:'Save + load stage progress per authenticated user from journeys table', status:'done', tag:'backend' },
       // Priority 2: Claude API resilience
-      { id:'q06', name:'Claude wrapper — timeout + retry', desc:'30s timeout, exponential backoff (max 3 retries) on 529/overload responses for all Claude calls', status:'pending', tag:'backend' },
-      { id:'q07', name:'Claude wrapper — structured error responses', desc:'Return typed error shape to frontend on failure; never let exceptions bubble as 500s', status:'pending', tag:'backend' },
-      { id:'q08', name:'Frontend error states for all AI calls', desc:'Every Claude-calling page shows a user-facing error message on failure, not a silent spinner', status:'pending', tag:'frontend' },
-      { id:'q09', name:'PDF upload validation', desc:'File size limit (10MB), type check server-side, reject password-protected/image-only PDFs with clear message', status:'pending', tag:'backend' },
+      { id:'q06', name:'Claude wrapper — timeout + retry', desc:'60s timeout, exponential backoff (2s/5s/10s, max 3 retries) on 529/overload responses', status:'done', tag:'backend' },
+      { id:'q07', name:'Claude wrapper — structured error responses', desc:'ClaudeError class with status_code + user_message; _handle_claude_error() converts to HTTPException', status:'done', tag:'backend' },
+      { id:'q08', name:'Frontend error states for all AI calls', desc:'All Claude-calling pages show user-facing error via err.userMessage from response interceptor', status:'done', tag:'frontend' },
+      { id:'q09', name:'PDF upload validation', desc:'10MB limit, password-protected check, scanned PDF rejection with clear messages', status:'done', tag:'backend' },
     ]
   },
   {
@@ -563,7 +563,7 @@ const PHASES = [
       { id:'f22', name:'Post-completion UI', desc:'Stage 6 page — interactive checklist with deadlines', status:'done', tag:'frontend' },
       { id:'f23', name:'User auth (sign up / log in)', desc:'Supabase Auth integration, JWT middleware', status:'done', tag:'backend' },
       { id:'f24', name:'Auth UI', desc:'Login/signup pages, protected routes', status:'done', tag:'frontend' },
-      { id:'f25', name:'Journey persistence', desc:'Save stage progress per user to DB', status:'pending', tag:'backend' },
+      { id:'f25', name:'Journey persistence', desc:'Save stage progress per user to DB', status:'done', tag:'backend' },
       { id:'f26', name:'Railway deployment', desc:'Backend live on Railway with env vars', status:'done', tag:'infra' },
       { id:'f27', name:'Vercel deployment', desc:'Frontend live on Vercel with env vars', status:'done', tag:'infra' },
     ]
@@ -575,11 +575,12 @@ const PHASES = [
     icon: '📈',
     features: [
       { id:'f28', name:'Survey report interpreter (R-06)', desc:'POST /legal/survey + PDF upload, severity categorisation', status:'done', tag:'backend' },
-      { id:'f29', name:'Survey interpreter UI', desc:'Stage 4 tab — upload survey, see categorised findings', status:'pending', tag:'frontend' },
+      { id:'f29', name:'Survey interpreter UI', desc:'Stage 4 tab — PDF upload, verdict hero card, findings by severity, renegotiation points', status:'done', tag:'frontend' },
       { id:'f30', name:'Comparable price analysis (R-08)', desc:'Land Registry data integration for sold price context', status:'pending', tag:'backend' },
       { id:'f31', name:'Comparable price UI', desc:'Stage 3 — price comparison display', status:'pending', tag:'frontend' },
-      { id:'f32', name:'Negotiation coach (R-09)', desc:'POST /offer/negotiate → offer script, leverage points', status:'pending', tag:'backend' },
-      { id:'f33', name:'Negotiation UI', desc:'Stage 3 page — situation form + negotiation output', status:'pending', tag:'frontend' },
+      { id:'f32', name:'Negotiation coach (R-09)', desc:'POST /offer/strategy → recommended offer, leverage points, opening script, walkaway price', status:'done', tag:'backend' },
+      { id:'f33', name:'Negotiation UI', desc:'Stage 3 page — offer meter, leverage points, copy-to-clipboard script, negotiation tips', status:'done', tag:'frontend' },
+      { id:'f35', name:'Mobile-responsive layout', desc:'Bottom nav bar (mobile), hamburger drawer, sidebar hidden on small screens, responsive forms', status:'done', tag:'frontend' },
       { id:'f34', name:'Viewing question generator (R-12)', desc:'Tailored question list from listing analysis', status:'pending', tag:'backend' },
     ]
   },
@@ -612,29 +613,64 @@ const DAILY_LOG = [
       { type: 'infra',   text: 'Installed Node.js 26 via Homebrew, ran npm install for frontend' },
       { type: 'setup',   text: 'Populated frontend/.env.local with Supabase URL and anon key' },
     ]
-  }
+  },
+  {
+    date: '2026-06-26',
+    items: [
+      { type: 'backend', text: 'Supabase Auth JWT middleware — switched from python-jose (ES256 incompatible) to supabase.auth.get_user()' },
+      { type: 'frontend', text: 'AuthProvider + useAuth hook — session persistence, onAuthStateChange listener' },
+      { type: 'frontend', text: 'Login/signup page with email confirmation state and redirect on success' },
+      { type: 'frontend', text: 'RequireAuth guard + AuthPublic redirect — all routes protected' },
+      { type: 'backend', text: 'Post-completion checklist — 16 seeded items, GET + PATCH endpoints, category column migration' },
+      { type: 'frontend', text: 'HomeownerPage — progress ring, category sections, optimistic toggle' },
+      { type: 'infra',   text: 'Backend deployed to Railway; frontend deployed to Vercel' },
+      { type: 'fix',     text: 'Fixed FK constraint on checklist_items.user_id and journeys.user_id (Supabase auth users not in app users table)' },
+      { type: 'fix',     text: 'Fixed UUID type mismatch in SQLAlchemy Journey query (string → uuid.UUID cast)' },
+      { type: 'fix',     text: 'Fixed Vercel build — added tsconfig.json, postcss.config.js, marked VITE_API_URL as Safe env var' },
+    ]
+  },
+  {
+    date: '2026-06-27',
+    items: [
+      { type: 'backend', text: 'Journey persistence — GET /journey/stages merges DB statuses with defaults; PATCH /journey/stage saves per user' },
+      { type: 'frontend', text: 'Sidebar shows live stage progress from DB; NaN% bug fixed (division-by-zero guard)' },
+      { type: 'backend', text: 'Claude resilience — 60s timeout, 3 retries with exponential backoff, ClaudeError class, structured HTTP errors' },
+      { type: 'backend', text: 'PDF validation — 10MB limit, encrypted PDF check, scanned PDF detection' },
+      { type: 'fix',     text: 'CORS — updated allowed origin to homeready-pied.vercel.app after Vercel URL changed' },
+    ]
+  },
+  {
+    date: '2026-06-28',
+    items: [
+      { type: 'frontend', text: 'Mobile-responsive layout — bottom nav bar (4 primary stages), hamburger drawer with full journey progress, sidebar hidden on mobile' },
+      { type: 'frontend', text: 'Survey Interpreter UI — new tab in Legal page; PDF upload, verdict hero card (proceed/renegotiate/investigate/withdraw), findings by severity, renegotiation points' },
+      { type: 'backend', text: 'Stage 3 Offer Strategy — POST /offer/strategy; recommended offer, offer range, leverage points, conditions, opening script, walkaway price, negotiation tips' },
+      { type: 'frontend', text: 'OfferPage — offer meter visualisation, copy-to-clipboard script, conditional repair cost field, fully responsive' },
+      { type: 'infra',   text: 'Deployed to Railway (backend) + Vercel (frontend); pushed to GitHub' },
+    ]
+  },
 ];
 
 const NEXT_STEPS = [
   {
-    label: '🛡️ [Priority 1] Wire auth end-to-end before building more UI',
-    sub: 'Backend JWT middleware (q01) → AuthContext + useAuth (q02) → login/signup pages (q03) → protected routes (q04) → journey persistence (q05)',
+    label: '🔑 Stage 5 — Exchange & Completion',
+    sub: 'Backend: POST /exchange/checklist or guided completion timeline. Frontend: ExchangePage with step-by-step completion guide and key milestones.',
   },
   {
-    label: '🛡️ [Priority 2] Add Claude API resilience layer',
-    sub: 'Timeout + retry wrapper (q06) → structured error responses (q07) → frontend error states on all AI pages (q08) → PDF upload validation (q09)',
+    label: '📧 Re-enable Supabase email confirmation',
+    sub: 'Currently disabled for testing. Turn on in Supabase Auth settings before sharing with real users.',
   },
   {
-    label: 'Build Stage 1 — Cost Calculator UI',
-    sub: 'Create frontend/src/pages/ReadinessPage.tsx — form → POST /readiness/costs → display breakdown',
+    label: '🌐 Custom domain',
+    sub: 'Point a domain (e.g. homeready.app) to Vercel. Add to CORS_ORIGINS on Railway.',
   },
   {
-    label: 'Build Stage 4 — Legal Document UI',
-    sub: 'Create LegalPage.tsx with paste + PDF upload, wire to existing /legal/document endpoints',
+    label: '📊 Comparable price analysis (f30/f31)',
+    sub: 'Land Registry sold prices integration — give context for offer strategy without leaving the app.',
   },
   {
-    label: 'Deploy MVP to Railway + Vercel',
-    sub: 'Set production env vars, test end-to-end on live URLs',
+    label: '🔍 Viewing question generator (f34)',
+    sub: 'Generate tailored questions from listing analysis output. Could live as a third tab in the Evaluate page.',
   },
 ];
 
