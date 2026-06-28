@@ -52,7 +52,7 @@ async def calculate_costs(req: CostCalculatorRequest) -> CostCalculatorResponse:
 # ── Listing Decoder ────────────────────────────────────────────────────────
 async def decode_listing(req: ListingDecoderRequest) -> ListingDecoderResponse:
     prompt = listing_decoder_prompt(req.listing_text, req.property_type or "unknown")
-    raw = await ask_claude(prompt, system=LISTING_DECODER_SYSTEM, max_tokens=2048)
+    raw = await ask_claude(prompt, system=LISTING_DECODER_SYSTEM, max_tokens=4096)
     data = _parse_json(raw, "listing_decoder")
     return ListingDecoderResponse(**data)
 

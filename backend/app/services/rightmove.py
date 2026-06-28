@@ -198,7 +198,10 @@ def _extract_from_page_model(arr: list, pd: dict, url: str) -> dict:
     # Description & text
     text_schema_idx = pd.get("text")
     text_schema = arr[text_schema_idx] if text_schema_idx is not None else {}
-    description = _get(arr, text_schema, "description") or ""
+    description_raw = _get(arr, text_schema, "description") or ""
+    # Strip HTML tags — Rightmove embeds <br /> etc. in the description
+    description = re.sub(r"<[^>]+>", " ", description_raw).strip()
+    description = re.sub(r"\s{2,}", " ", description)
 
     # Key features (indexed list)
     kf_idx = pd.get("keyFeatures")
