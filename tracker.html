@@ -582,6 +582,11 @@ const PHASES = [
       { id:'f33', name:'Negotiation UI', desc:'Stage 3 page — offer meter, leverage points, copy-to-clipboard script, negotiation tips', status:'done', tag:'frontend' },
       { id:'f35', name:'Mobile-responsive layout', desc:'Bottom nav bar (mobile), hamburger drawer, sidebar hidden on small screens, responsive forms', status:'done', tag:'frontend' },
       { id:'f34', name:'Viewing question generator (R-12)', desc:'Tailored question list from listing analysis', status:'pending', tag:'backend' },
+      { id:'f39', name:'Rightmove URL scraper', desc:'GET Rightmove listing by URL — parses window.__PAGE_MODEL indexed array format; extracts address, price, bedrooms, description, key features, tenure, photo count', status:'done', tag:'backend' },
+      { id:'f40', name:'Listing Decoder URL-first UX', desc:'EvaluatePage redesigned: URL input primary, paste text as fallback toggle; auto-decodes after fetch; metadata pill strip (price, beds, days on market, reductions, tenure, EPC)', status:'done', tag:'frontend' },
+      { id:'f41', name:'Save to shortlist', desc:'POST /properties — saves decoded property with trust score, flags, metadata to DB; GET/PATCH/DELETE endpoints', status:'done', tag:'backend' },
+      { id:'f42', name:'Shortlist page', desc:'My Shortlist page — sort by trust score/price/date; property cards with flag preview, inline notes, CTAs to Neighbourhood and Offer Strategy', status:'done', tag:'frontend' },
+      { id:'f43', name:'Feature context CTAs', desc:'Listing Decoder → Neighbourhood (postcode pre-filled) and Offer Strategy (price + type + red flags pre-filled) via URL query params', status:'done', tag:'frontend' },
     ]
   },
   {
@@ -646,15 +651,33 @@ const DAILY_LOG = [
       { type: 'frontend', text: 'Survey Interpreter UI — new tab in Legal page; PDF upload, verdict hero card (proceed/renegotiate/investigate/withdraw), findings by severity, renegotiation points' },
       { type: 'backend', text: 'Stage 3 Offer Strategy — POST /offer/strategy; recommended offer, offer range, leverage points, conditions, opening script, walkaway price, negotiation tips' },
       { type: 'frontend', text: 'OfferPage — offer meter visualisation, copy-to-clipboard script, conditional repair cost field, fully responsive' },
-      { type: 'infra',   text: 'Deployed to Railway (backend) + Vercel (frontend); pushed to GitHub' },
+      { type: 'backend', text: 'Rightmove URL scraper — reverse-engineered window.__PAGE_MODEL indexed array format; extracts address, postcode, price, bedrooms, bathrooms, description, key features, photo count, tenure, listing history; strips HTML from description' },
+      { type: 'frontend', text: 'EvaluatePage redesign (PM recommendations) — URL-first input, auto-decode after fetch, metadata pill strip, Save to shortlist button, Context CTAs (Neighbourhood + Offer Strategy pre-filled from listing data)' },
+      { type: 'backend', text: 'Saved properties API — POST/GET/PATCH/DELETE /properties endpoints; SavedProperty model + Alembic migration applied to Supabase' },
+      { type: 'frontend', text: 'ShortlistPage — sort by trust/price/date, property cards with flag preview, inline notes editing, deep-link CTAs' },
+      { type: 'fix',     text: 'Fixed SavedProperty 500 — removed stale User/Analysis SQLAlchemy models with broken relationships (FK dropped in earlier migration caused mapper init failure)' },
+      { type: 'fix',     text: 'Fixed listing decoder 500 — HTML tags in Rightmove description corrupted Claude JSON output; stripped with regex; increased max_tokens 2048→4096' },
+      { type: 'infra',   text: 'Deployed all changes to Railway (GitHub auto-deploy) + Vercel' },
     ]
   },
 ];
 
 const NEXT_STEPS = [
   {
+    label: '🔍 Viewing question generator (f34)',
+    sub: 'Generate tailored questions from the decoded listing — third tab in the Evaluate page alongside Listing Decoder and Neighbourhood Briefing.',
+  },
+  {
+    label: '📊 Comparable price analysis (f30/f31)',
+    sub: 'Land Registry sold prices integration — surface comparable sales in the Offer Strategy page to give context for the recommended offer.',
+  },
+  {
     label: '🔑 Stage 5 — Exchange & Completion',
     sub: 'Backend: POST /exchange/checklist or guided completion timeline. Frontend: ExchangePage with step-by-step completion guide and key milestones.',
+  },
+  {
+    label: '🗂 Shortlist comparison view (PM rec #5)',
+    sub: 'Side-by-side view of 2–3 saved properties — trust scores, flag counts, price, key metrics. Helps user decide which to pursue.',
   },
   {
     label: '📧 Re-enable Supabase email confirmation',
@@ -663,14 +686,6 @@ const NEXT_STEPS = [
   {
     label: '🌐 Custom domain',
     sub: 'Point a domain (e.g. homeready.app) to Vercel. Add to CORS_ORIGINS on Railway.',
-  },
-  {
-    label: '📊 Comparable price analysis (f30/f31)',
-    sub: 'Land Registry sold prices integration — give context for offer strategy without leaving the app.',
-  },
-  {
-    label: '🔍 Viewing question generator (f34)',
-    sub: 'Generate tailored questions from listing analysis output. Could live as a third tab in the Evaluate page.',
   },
 ];
 
