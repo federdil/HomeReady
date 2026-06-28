@@ -1,28 +1,36 @@
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { useMutation } from '@tanstack/react-query'
-import { decodeListing } from '@/lib/api'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
+import { decodeListing, fetchRightmoveListing, saveProperty } from '@/lib/api'
 import { useMarkStage } from '@/lib/useMarkStage'
-import type { ListingDecoderResult } from '@/types'
+import type { ListingDecoderResult, FetchedListing } from '@/types'
 import { cn } from '@/lib/utils'
 import { SolidCard, GlassCard, PageHeader, PrimaryButton, FormField, RiskBadge } from '@/components/ui'
-import { AlertTriangle, CheckCircle, HelpCircle, Eye, Home, Info, Loader2 } from 'lucide-react'
+import {
+  AlertTriangle, CheckCircle, HelpCircle, Eye, Home, Info,
+  Loader2, Link, FileText, Bookmark, BookmarkCheck, MapPin, TrendingDown,
+  ArrowRight, ExternalLink,
+} from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 
-const schema = z.object({
-  listing_text: z.string().min(50, 'Please paste the full listing text (at least 50 characters)'),
-  property_type: z.string().optional(),
-})
-type FormData = z.infer<typeof schema>
+// ── Shared helpers ────────────────────────────────────────────────────────
+
+function formatGBP(n: number) {
+  return '£' + n.toLocaleString('en-GB')
+}
+
+function severityToRiskLevel(s: string): 'low' | 'amber' | 'red' {
+  if (s === 'low') return 'low'
+  if (s === 'high') return 'red'
+  return 'amber'
+}
 
 function TrustRing({ score }: { score: number }) {
   const color = score >= 70 ? '#22A05A' : score >= 45 ? '#D97706' : '#DC2626'
   const label = score >= 70 ? 'Reasonably transparent' : score >= 45 ? 'Some concerns' : 'Significant red flags'
   return (
-    <div className="flex flex-col items-center gap-2">
-      <svg viewBox="0 0 120 120" className="w-28 h-28">
+    <div className="flex flex-col items-center gap-2 shrink-0">
+      <svg viewBox="0 0 120 120" className="w-24 h-24">
         <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(200,190,220,0.3)" strokeWidth="10" />
         <circle cx="60" cy="60" r="50" fill="none" stroke={color} strokeWidth="10"
           strokeDasharray={`${score * 3.14} 314`} strokeLinecap="round"
@@ -35,31 +43,185 @@ function TrustRing({ score }: { score: number }) {
   )
 }
 
-function severityToRiskLevel(s: string): 'low' | 'amber' | 'red' {
-  if (s === 'low') return 'low'
-  if (s === 'high') return 'red'
-  return 'amber'
+// ── Metadata pill strip ───────────────────────────────────────────────────
+
+function MetaPill({ icon, label }: { icon: React.ReactNode; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 text-xs text-plum-soft bg-white/60 px-2.5 py-1 rounded-full border border-white/60">
+      {icon}{label}
+    </span>
+  )
 }
 
+function ListingMetadata({ fetched }: { fetched: FetchedListing }) {
+  const pills = []
+  if (fetched.price) pills.push({ icon: <span className="font-medium text-plum">£</span>, label: formatGBP(fetched.price) })
+  if (fetched.bedrooms) pills.push({ icon: <Home className="w-3 h-3" />, label: `${fetched.bedrooms} bed` })
+  if (fetched.days_on_market != null) pills.push({
+    icon: <span>📅</span>,
+    label: fetched.days_on_market > 0 ? `${fetched.days_on_market} days on market` : 'Just listed',
+  })
+  if (fetched.reduction_count > 0) pills.push({
+    icon: <TrendingDown className="w-3 h-3 text-amber" />,
+    label: `${fetched.reduction_count} price reduction${fetched.reduction_count > 1 ? 's' : ''}`,
+  })
+  if (fetched.tenure_type) pills.push({ icon: <FileText className="w-3 h-3" />, label: fetched.tenure_type })
+  if (fetched.lease_years) pills.push({
+    icon: <span className={fetched.lease_years < 80 ? '🔴' : '🟢'} />,
+    label: `${fetched.lease_years}yr lease`,
+  })
+  if (fetched.epc_rating) pills.push({ icon: <span>⚡</span>, label: `EPC ${fetched.epc_rating}` })
+  if (fetched.photo_count > 0 && fetched.photo_count < 5) pills.push({
+    icon: <AlertTriangle className="w-3 h-3 text-amber" />,
+    label: `Only ${fetched.photo_count} photos`,
+  })
+  if (!pills.length) return null
+  return (
+    <div className="flex flex-wrap gap-2 mt-3">
+      {pills.map((p, i) => <MetaPill key={i} icon={p.icon} label={p.label} />)}
+    </div>
+  )
+}
+
+// ── Context CTAs ──────────────────────────────────────────────────────────
+
+function ContextCTAs({ result, fetched }: { result: ListingDecoderResult; fetched: FetchedListing | null }) {
+  const navigate = useNavigate()
+  const postcode = fetched?.postcode || ''
+  const price = fetched?.price
+  const propertyType = fetched?.property_type || ''
+  const redFlagContext = result.red_flags.slice(0, 2).join('; ')
+
+  return (
+    <div className="grid sm:grid-cols-2 gap-3 mt-2">
+      <button
+        onClick={() => navigate(`/evaluate/neighbourhood${postcode ? `?postcode=${encodeURIComponent(postcode)}` : ''}`)}
+        className="flex items-center gap-3 p-4 rounded-xl bg-white/60 border border-white/60 hover:bg-white/80 transition-colors text-left group"
+      >
+        <div className="w-9 h-9 rounded-xl bg-purple-faint flex items-center justify-center shrink-0">
+          <MapPin className="w-4 h-4 text-purple" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-plum">Check the neighbourhood</p>
+          <p className="text-xs text-plum-soft mt-0.5 truncate">
+            {postcode ? `Auto-filled: ${postcode}` : 'Transport, schools & flood risk'}
+          </p>
+        </div>
+        <ArrowRight className="w-4 h-4 text-plum-soft/40 group-hover:text-purple transition-colors shrink-0" />
+      </button>
+
+      <button
+        onClick={() => {
+          const params = new URLSearchParams()
+          if (price) params.set('price', String(price))
+          if (propertyType) params.set('type', propertyType)
+          if (redFlagContext) params.set('context', redFlagContext)
+          navigate(`/offer?${params.toString()}`)
+        }}
+        className="flex items-center gap-3 p-4 rounded-xl bg-white/60 border border-white/60 hover:bg-white/80 transition-colors text-left group"
+      >
+        <div className="w-9 h-9 rounded-xl bg-purple-faint flex items-center justify-center shrink-0">
+          <TrendingDown className="w-4 h-4 text-purple" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-plum">Build offer strategy</p>
+          <p className="text-xs text-plum-soft mt-0.5 truncate">
+            {price ? `Pre-filled: ${formatGBP(price)}` : 'Leverage points & opening script'}
+          </p>
+        </div>
+        <ArrowRight className="w-4 h-4 text-plum-soft/40 group-hover:text-purple transition-colors shrink-0" />
+      </button>
+    </div>
+  )
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────
+
 export default function EvaluatePage() {
-  const [result, setResult] = useState<ListingDecoderResult | null>(null)
+  const [result, setResult]     = useState<ListingDecoderResult | null>(null)
+  const [fetched, setFetched]   = useState<FetchedListing | null>(null)
+  const [inputMode, setInputMode] = useState<'url' | 'paste'>('url')
+  const [url, setUrl]           = useState('')
+  const [pasteText, setPasteText] = useState('')
+  const [propertyType, setPropertyType] = useState('')
+  const [saved, setSaved]       = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const markStage = useMarkStage()
+  const qc = useQueryClient()
 
-  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
-    resolver: zodResolver(schema),
+  // Step 1: fetch listing from Rightmove URL
+  const fetchMutation = useMutation({
+    mutationFn: fetchRightmoveListing,
+    onSuccess: (data) => {
+      setFetched(data)
+      if (data.property_type) setPropertyType(data.property_type)
+      // Auto-decode immediately
+      decodeMutation.mutate({ listing_text: data.listing_text, property_type: data.property_type || propertyType })
+    },
   })
 
-  const mutation = useMutation({
+  // Step 2: decode the listing text
+  const decodeMutation = useMutation({
     mutationFn: decodeListing,
-    onSuccess: (data) => { setResult(data); markStage('evaluation', 'in_progress') },
+    onSuccess: (data) => {
+      setResult(data)
+      setSaved(false)
+      setSaveError(null)
+      markStage('evaluation', 'in_progress')
+    },
   })
+
+  // Save to shortlist
+  const saveMutation = useMutation({
+    mutationFn: () => saveProperty({
+      rightmove_url: fetched?.rightmove_url ?? null,
+      address: fetched?.address ?? null,
+      postcode: fetched?.postcode ?? null,
+      price: fetched?.price ?? null,
+      property_type: (fetched?.property_type || propertyType) || null,
+      bedrooms: fetched?.bedrooms ?? null,
+      days_on_market: fetched?.days_on_market ?? null,
+      trust_score: result?.trust_score ?? null,
+      red_flag_count: result?.red_flags.length ?? 0,
+      green_flag_count: result?.green_flags.length ?? 0,
+      decoded_result: result as any,
+      notes: null,
+    }),
+    onSuccess: () => {
+      setSaved(true)
+      qc.invalidateQueries({ queryKey: ['saved-properties'] })
+    },
+    onError: (e: any) => setSaveError(e?.userMessage ?? 'Could not save. Please try again.'),
+  })
+
+  const handleUrlSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!url.trim()) return
+    setResult(null)
+    setFetched(null)
+    setSaved(false)
+    fetchMutation.mutate(url.trim())
+  }
+
+  const handlePasteSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!pasteText.trim()) return
+    setResult(null)
+    setFetched(null)
+    setSaved(false)
+    decodeMutation.mutate({ listing_text: pasteText, property_type: propertyType })
+  }
+
+  const isPending = fetchMutation.isPending || decodeMutation.isPending
+  const fetchError = fetchMutation.error as any
+  const decodeError = decodeMutation.error as any
 
   return (
     <div className="space-y-6">
       <PageHeader
         stage="Stage 2 — Property Evaluation"
         title="Listing Decoder"
-        description="Paste any estate agent listing. HomeReady decodes the language, flags risks, and tells you what questions to ask at the viewing."
+        description="Paste a Rightmove link — HomeReady fetches the listing, decodes the estate agent language, surfaces hidden risks, and tells you what to ask at the viewing."
       />
 
       {/* Sub-nav */}
@@ -78,50 +240,169 @@ export default function EvaluatePage() {
         >
           Neighbourhood Briefing
         </NavLink>
+        <NavLink to="/shortlist"
+          className={({ isActive }) => cn('px-4 py-1.5 rounded-full transition-colors flex items-center gap-1.5',
+            isActive ? 'btn-primary py-1.5 px-4' : 'btn-ghost py-1.5 px-4'
+          )}
+        >
+          <Bookmark className="w-3 h-3" />
+          My Shortlist
+        </NavLink>
       </div>
 
-      {/* Form */}
-      <SolidCard>
-        <form onSubmit={handleSubmit(d => mutation.mutate(d))} className="space-y-4">
-          <FormField label="Paste the listing text" error={errors.listing_text?.message}>
-            <textarea {...register('listing_text')} rows={8}
-              placeholder="Paste the full listing description here — the longer the better. Include any details about the property, area, tenure, service charges, etc."
-              className="glass-input resize-none" />
-          </FormField>
+      {/* Input card */}
+      <SolidCard className="space-y-4">
+        {/* Mode toggle */}
+        <div className="flex gap-2 text-xs font-medium">
+          <button type="button" onClick={() => setInputMode('url')}
+            className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-colors',
+              inputMode === 'url' ? 'bg-purple text-white' : 'bg-white/50 text-plum-soft hover:text-plum border border-white/60'
+            )}
+          >
+            <Link className="w-3 h-3" /> Rightmove URL
+          </button>
+          <button type="button" onClick={() => setInputMode('paste')}
+            className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-colors',
+              inputMode === 'paste' ? 'bg-purple text-white' : 'bg-white/50 text-plum-soft hover:text-plum border border-white/60'
+            )}
+          >
+            <FileText className="w-3 h-3" /> Paste text
+          </button>
+        </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 sm:items-end">
-            <FormField label="Property type (optional)">
-              <select {...register('property_type')} className="glass-input">
-                <option value="">Select…</option>
-                <option value="flat">Flat / Apartment</option>
-                <option value="house">House</option>
-                <option value="maisonette">Maisonette</option>
-                <option value="studio">Studio</option>
-              </select>
+        {inputMode === 'url' ? (
+          <form onSubmit={handleUrlSubmit} className="space-y-4">
+            <FormField
+              label="Rightmove property URL"
+              hint="e.g. https://www.rightmove.co.uk/properties/123456789"
+            >
+              <div className="flex gap-2">
+                <input
+                  value={url}
+                  onChange={e => setUrl(e.target.value)}
+                  placeholder="Paste the Rightmove link here"
+                  className="glass-input flex-1"
+                  type="url"
+                />
+                <PrimaryButton type="submit" loading={isPending} disabled={!url.trim()}>
+                  {isPending ? (fetchMutation.isPending ? 'Fetching…' : 'Decoding…') : 'Decode'}
+                </PrimaryButton>
+              </div>
             </FormField>
-            <PrimaryButton type="submit" loading={mutation.isPending} className="sm:mb-0 sm:self-end w-full sm:w-auto">
-              {mutation.isPending ? 'Decoding…' : 'Decode listing'}
-            </PrimaryButton>
-          </div>
 
-          {mutation.isError && (
-            <p className="text-sm text-red-500 flex items-center gap-1.5">
-              <AlertTriangle className="w-4 h-4" />{(mutation.error as any)?.userMessage ?? 'Something went wrong. Please try again.'}
-            </p>
-          )}
-        </form>
+            {/* Status indicators */}
+            {fetchMutation.isPending && (
+              <div className="flex items-center gap-2 text-xs text-plum-soft">
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-purple" />
+                Fetching listing from Rightmove…
+              </div>
+            )}
+            {decodeMutation.isPending && fetched && (
+              <div className="flex items-center gap-2 text-xs text-plum-soft">
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-purple" />
+                Decoding with AI — reading between the lines…
+              </div>
+            )}
+
+            {fetchError && (
+              <p className="text-sm text-red-500 flex items-center gap-1.5">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                {fetchError?.userMessage ?? fetchError?.message ?? 'Could not fetch listing.'}
+                {' '}
+                <button type="button" onClick={() => setInputMode('paste')}
+                  className="underline hover:no-underline">Paste text instead</button>
+              </p>
+            )}
+            {decodeError && (
+              <p className="text-sm text-red-500 flex items-center gap-1.5">
+                <AlertTriangle className="w-4 h-4" />
+                {decodeError?.userMessage ?? 'Decode failed. Please try again.'}
+              </p>
+            )}
+          </form>
+        ) : (
+          <form onSubmit={handlePasteSubmit} className="space-y-4">
+            <FormField label="Paste the listing text">
+              <textarea
+                value={pasteText}
+                onChange={e => setPasteText(e.target.value)}
+                rows={8}
+                placeholder="Paste the full listing description here — the longer the better."
+                className="glass-input resize-none"
+              />
+            </FormField>
+            <div className="flex flex-col sm:flex-row gap-4 sm:items-end">
+              <FormField label="Property type (optional)">
+                <select value={propertyType} onChange={e => setPropertyType(e.target.value)} className="glass-input">
+                  <option value="">Select…</option>
+                  <option value="flat">Flat / Apartment</option>
+                  <option value="house">House</option>
+                  <option value="maisonette">Maisonette</option>
+                  <option value="studio">Studio</option>
+                </select>
+              </FormField>
+              <PrimaryButton type="submit" loading={decodeMutation.isPending} className="w-full sm:w-auto sm:self-end">
+                {decodeMutation.isPending ? 'Decoding…' : 'Decode listing'}
+              </PrimaryButton>
+            </div>
+            {decodeError && (
+              <p className="text-sm text-red-500 flex items-center gap-1.5">
+                <AlertTriangle className="w-4 h-4" />
+                {decodeError?.userMessage ?? 'Something went wrong. Please try again.'}
+              </p>
+            )}
+          </form>
+        )}
       </SolidCard>
 
+      {/* Results */}
       {result && (
         <div className="space-y-4 animate-results">
 
-          {/* Trust score + summary */}
-          <SolidCard className="flex flex-col md:flex-row gap-6 items-center">
-            <TrustRing score={result.trust_score} />
-            <div className="flex-1">
-              <h2 className="font-display text-xl text-plum mb-2">The honest picture</h2>
-              <p className="text-sm text-plum-soft leading-relaxed">{result.summary}</p>
+          {/* Hero: trust score + summary + metadata */}
+          <SolidCard>
+            <div className="flex flex-col sm:flex-row gap-5 items-start sm:items-center">
+              <TrustRing score={result.trust_score} />
+              <div className="flex-1 min-w-0">
+                {fetched?.address && (
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-plum-soft shrink-0" />
+                    <p className="text-xs text-plum-soft truncate">{fetched.address}</p>
+                    {fetched.rightmove_url && (
+                      <a href={fetched.rightmove_url} target="_blank" rel="noopener noreferrer"
+                        className="text-purple hover:underline ml-auto shrink-0">
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </div>
+                )}
+                <h2 className="font-display text-lg md:text-xl text-plum mb-1">The honest picture</h2>
+                <p className="text-sm text-plum-soft leading-relaxed">{result.summary}</p>
+                {fetched && <ListingMetadata fetched={fetched} />}
+              </div>
             </div>
+
+            {/* Save to shortlist */}
+            <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/40">
+              <span className="text-xs text-plum-soft">Want to come back to this property?</span>
+              {saved ? (
+                <span className="flex items-center gap-1.5 text-xs text-sage font-medium">
+                  <BookmarkCheck className="w-4 h-4" /> Saved to shortlist
+                </span>
+              ) : (
+                <button
+                  onClick={() => saveMutation.mutate()}
+                  disabled={saveMutation.isPending}
+                  className="flex items-center gap-1.5 text-xs text-purple hover:text-purple/80 font-medium transition-colors disabled:opacity-50"
+                >
+                  {saveMutation.isPending
+                    ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving…</>
+                    : <><Bookmark className="w-3.5 h-3.5" /> Save to shortlist</>
+                  }
+                </button>
+              )}
+            </div>
+            {saveError && <p className="text-xs text-red-500 mt-1">{saveError}</p>}
           </SolidCard>
 
           {/* Red + green flags */}
@@ -234,6 +515,13 @@ export default function EvaluatePage() {
               </ol>
             </GlassCard>
           )}
+
+          {/* Context CTAs */}
+          <div>
+            <p className="text-xs text-plum-soft font-medium uppercase tracking-wide mb-3">Continue your research</p>
+            <ContextCTAs result={result} fetched={fetched} />
+          </div>
+
         </div>
       )}
     </div>

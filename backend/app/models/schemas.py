@@ -196,6 +196,64 @@ class NeighbourhoodResponse(BaseModel):
     data_sources: list[str]
 
 
+# ── Rightmove URL fetch ───────────────────────────────────────────────────
+class FetchListingRequest(BaseModel):
+    url: str
+
+class FetchListingResponse(BaseModel):
+    listing_text: str
+    address: Optional[str] = None
+    postcode: Optional[str] = None
+    price: Optional[int] = None
+    property_type: Optional[str] = None
+    bedrooms: Optional[int] = None
+    days_on_market: Optional[int] = None
+    reduction_count: int = 0
+    photo_count: int = 0
+    tenure_type: Optional[str] = None
+    lease_years: Optional[int] = None
+    epc_rating: Optional[str] = None
+    rightmove_url: str
+
+
+# ── Saved properties (shortlist) ──────────────────────────────────────────
+class SavePropertyRequest(BaseModel):
+    rightmove_url: Optional[str] = None
+    address: Optional[str] = None
+    postcode: Optional[str] = None
+    price: Optional[int] = None
+    property_type: Optional[str] = None
+    bedrooms: Optional[int] = None
+    days_on_market: Optional[int] = None
+    trust_score: Optional[int] = None
+    red_flag_count: int = 0
+    green_flag_count: int = 0
+    decoded_result: Optional[dict] = None
+    notes: Optional[str] = None
+
+class SavedPropertyResponse(BaseModel):
+    id: UUID
+    rightmove_url: Optional[str] = None
+    address: Optional[str] = None
+    postcode: Optional[str] = None
+    price: Optional[int] = None
+    property_type: Optional[str] = None
+    bedrooms: Optional[int] = None
+    days_on_market: Optional[int] = None
+    trust_score: Optional[int] = None
+    red_flag_count: int = 0
+    green_flag_count: int = 0
+    decoded_result: Optional[dict] = None
+    notes: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class UpdatePropertyNotesRequest(BaseModel):
+    notes: str
+
+
 # ── Checklist ─────────────────────────────────────────────────────────────
 class ChecklistItemResponse(BaseModel):
     id: UUID

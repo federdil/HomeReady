@@ -11,6 +11,7 @@ import LegalPage from '@/pages/LegalPage'
 import AuthPage from '@/pages/AuthPage'
 import HomeownerPage from '@/pages/HomeownerPage'
 import OfferPage from '@/pages/OfferPage'
+import ShortlistPage from '@/pages/ShortlistPage'
 import { ProgressBar } from '@/components/ui'
 import { Home, Loader2, CheckCircle, ChevronRight, LogOut, User, PoundSterling, Search, FileText, ClipboardCheck, Menu, X, Handshake, Key } from 'lucide-react'
 import type { JourneyStage } from '@/types'
@@ -316,6 +317,7 @@ function AppShell() {
             <Route path="/readiness"  element={<ReadinessPage />} />
             <Route path="/evaluate"   element={<EvaluatePage />} />
             <Route path="/evaluate/neighbourhood" element={<NeighbourhoodPage />} />
+            <Route path="/shortlist"  element={<ShortlistPage />} />
             <Route path="/offer"      element={<OfferPage />} />
             <Route path="/legal"      element={<LegalPage />} />
             <Route path="/exchange"   element={<ComingSoon title="Exchange & Completion" stage="Stage 5" />} />

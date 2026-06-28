@@ -79,3 +79,24 @@ class ChecklistItem(Base):
     stage: Mapped[JourneyStage] = mapped_column(Enum(JourneyStage))
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     category: Mapped[str] = mapped_column(String(32), default="admin")
+
+
+# ── Saved properties (shortlist) ──────────────────────────────────────────
+class SavedProperty(Base):
+    __tablename__ = "saved_properties"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)  # Supabase auth UUID, no FK
+    rightmove_url: Mapped[str] = mapped_column(String(500), nullable=True)
+    address: Mapped[str] = mapped_column(String(500), nullable=True)
+    postcode: Mapped[str] = mapped_column(String(20), nullable=True)
+    price: Mapped[int] = mapped_column(Integer, nullable=True)
+    property_type: Mapped[str] = mapped_column(String(64), nullable=True)
+    bedrooms: Mapped[int] = mapped_column(Integer, nullable=True)
+    days_on_market: Mapped[int] = mapped_column(Integer, nullable=True)
+    trust_score: Mapped[int] = mapped_column(Integer, nullable=True)
+    red_flag_count: Mapped[int] = mapped_column(Integer, default=0)
+    green_flag_count: Mapped[int] = mapped_column(Integer, default=0)
+    decoded_result: Mapped[dict] = mapped_column(JSON, nullable=True)
+    notes: Mapped[str] = mapped_column(String(2000), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

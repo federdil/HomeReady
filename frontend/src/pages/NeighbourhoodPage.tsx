@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -94,8 +95,13 @@ export default function NeighbourhoodPage() {
   const [result, setResult] = useState<NeighbourhoodResult | null>(null)
   const [selected, setSelected] = useState<string[]>([])
   const markStage = useMarkStage()
+  const [searchParams] = useSearchParams()
+  const prefillPostcode = searchParams.get('postcode') ?? ''
 
-  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({ resolver: zodResolver(schema) })
+  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
+    resolver: zodResolver(schema),
+    defaultValues: { postcode: prefillPostcode },
+  })
 
   const mutation = useMutation({
     mutationFn: getNeighbourhoodBriefing,

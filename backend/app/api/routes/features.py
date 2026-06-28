@@ -13,12 +13,15 @@ from app.models.schemas import (
     DocumentExplainerRequest, DocumentExplainerResponse,
     SurveyInterpreterRequest, SurveyInterpreterResponse,
     OfferStrategyRequest, OfferStrategyResponse,
+    FetchListingRequest, FetchListingResponse,
+    SavePropertyRequest, SavedPropertyResponse, UpdatePropertyNotesRequest,
 )
 from app.services.features import (
     calculate_costs, decode_listing,
     explain_document, interpret_survey,
     get_offer_strategy,
 )
+from app.services.rightmove import fetch_listing, RightmoveError
 import pypdf
 import io
 
@@ -68,6 +71,97 @@ async def create_offer_strategy(req: OfferStrategyRequest):
         return await get_offer_strategy(req)
     except Exception as e:
         _handle_claude_error(e)
+
+
+# ── Rightmove URL fetch ───────────────────────────────────────────────────
+@router.post("/evaluate/fetch-listing", response_model=FetchListingResponse)
+async def fetch_rightmove_listing(req: FetchListingRequest):
+    try:
+        return await fetch_listing(req.url)
+    except RightmoveError as e:
+        raise HTTPException(status_code=422, detail=e.user_message)
+    except Exception:
+        raise HTTPException(status_code=500, detail="Could not fetch the listing. Please paste the text manually.")
+
+
+# ── Saved properties (shortlist) ──────────────────────────────────────────
+@router.post("/properties", response_model=SavedPropertyResponse, status_code=201)
+async def save_property(
+    req: SavePropertyRequest,
+    db: AsyncSession = Depends(get_db),
+    user_id: str = Depends(get_current_user),
+):
+    from app.models.models import SavedProperty
+    import uuid
+    prop = SavedProperty(
+        user_id=uuid.UUID(user_id),
+        **req.model_dump(),
+    )
+    db.add(prop)
+    await db.commit()
+    await db.refresh(prop)
+    return prop
+
+
+@router.get("/properties", response_model=list[SavedPropertyResponse])
+async def list_properties(
+    db: AsyncSession = Depends(get_db),
+    user_id: str = Depends(get_current_user),
+):
+    from app.models.models import SavedProperty
+    from sqlalchemy import select
+    import uuid
+    result = await db.execute(
+        select(SavedProperty)
+        .where(SavedProperty.user_id == uuid.UUID(user_id))
+        .order_by(SavedProperty.created_at.desc())
+    )
+    return result.scalars().all()
+
+
+@router.patch("/properties/{property_id}/notes", response_model=SavedPropertyResponse)
+async def update_property_notes(
+    property_id: str,
+    req: UpdatePropertyNotesRequest,
+    db: AsyncSession = Depends(get_db),
+    user_id: str = Depends(get_current_user),
+):
+    from app.models.models import SavedProperty
+    from sqlalchemy import select
+    import uuid
+    result = await db.execute(
+        select(SavedProperty)
+        .where(SavedProperty.id == uuid.UUID(property_id))
+        .where(SavedProperty.user_id == uuid.UUID(user_id))
+    )
+    prop = result.scalar_one_or_none()
+    if not prop:
+        raise HTTPException(status_code=404, detail="Property not found")
+    prop.notes = req.notes
+    await db.commit()
+    await db.refresh(prop)
+    return prop
+
+
+@router.delete("/properties/{property_id}", status_code=204)
+async def delete_property(
+    property_id: str,
+    db: AsyncSession = Depends(get_db),
+    user_id: str = Depends(get_current_user),
+):
+    from app.models.models import SavedProperty
+    from sqlalchemy import select
+    import uuid
+    result = await db.execute(
+        select(SavedProperty)
+        .where(SavedProperty.id == uuid.UUID(property_id))
+        .where(SavedProperty.user_id == uuid.UUID(user_id))
+    )
+    prop = result.scalar_one_or_none()
+    if not prop:
+        raise HTTPException(status_code=404, detail="Property not found")
+    await db.delete(prop)
+    await db.commit()
 
 
 # ── Stage 2: Property Evaluation ──────────────────────────────────────────

@@ -138,6 +138,41 @@ export interface NeighbourhoodResult {
   data_sources: string[]
 }
 
+// ── Rightmove fetch ───────────────────────────────────────────────────────
+export interface FetchedListing {
+  listing_text: string
+  address: string | null
+  postcode: string | null
+  price: number | null
+  property_type: string | null
+  bedrooms: number | null
+  days_on_market: number | null
+  reduction_count: number
+  photo_count: number
+  tenure_type: string | null
+  lease_years: number | null
+  epc_rating: string | null
+  rightmove_url: string
+}
+
+// ── Saved property ────────────────────────────────────────────────────────
+export interface SavedProperty {
+  id: string
+  rightmove_url: string | null
+  address: string | null
+  postcode: string | null
+  price: number | null
+  property_type: string | null
+  bedrooms: number | null
+  days_on_market: number | null
+  trust_score: number | null
+  red_flag_count: number
+  green_flag_count: number
+  decoded_result: ListingDecoderResult | null
+  notes: string | null
+  created_at: string
+}
+
 // ── Offer Strategy ────────────────────────────────────────────────────────
 export interface OfferRange {
   low: number

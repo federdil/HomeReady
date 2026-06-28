@@ -5,6 +5,8 @@ import type {
   DocumentExplainerResult,
   SurveyInterpreterResult,
   OfferStrategyResult,
+  FetchedListing,
+  SavedProperty,
   JourneyStage,
   ChecklistItem,
 } from '@/types'
@@ -60,6 +62,23 @@ export interface ListingInput {
 }
 export const decodeListing = (data: ListingInput): Promise<ListingDecoderResult> =>
   api.post('/api/v1/evaluate/listing', data).then(r => r.data)
+
+// ── Rightmove URL fetch ────────────────────────────────────────────────────
+export const fetchRightmoveListing = (url: string): Promise<FetchedListing> =>
+  api.post('/api/v1/evaluate/fetch-listing', { url }).then(r => r.data)
+
+// ── Saved properties (shortlist) ───────────────────────────────────────────
+export const getSavedProperties = (): Promise<SavedProperty[]> =>
+  api.get('/api/v1/properties').then(r => r.data)
+
+export const saveProperty = (data: Omit<SavedProperty, 'id' | 'created_at'>): Promise<SavedProperty> =>
+  api.post('/api/v1/properties', data).then(r => r.data)
+
+export const updatePropertyNotes = (id: string, notes: string): Promise<SavedProperty> =>
+  api.patch(`/api/v1/properties/${id}/notes`, { notes }).then(r => r.data)
+
+export const deleteProperty = (id: string): Promise<void> =>
+  api.delete(`/api/v1/properties/${id}`).then(r => r.data)
 
 // ── Stage 3: Offer Strategy ────────────────────────────────────────────────
 export interface OfferStrategyInput {

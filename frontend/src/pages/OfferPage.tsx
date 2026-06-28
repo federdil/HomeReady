@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -70,13 +71,20 @@ export default function OfferPage() {
   const [result, setResult] = useState<OfferStrategyResult | null>(null)
   const [copied, setCopied]  = useState(false)
   const markStage = useMarkStage()
+  const [searchParams] = useSearchParams()
+
+  const prefillPrice   = searchParams.get('price')   ? Number(searchParams.get('price'))   : undefined
+  const prefillType    = searchParams.get('type')    ?? 'flat'
+  const prefillContext = searchParams.get('context') ?? ''
 
   const { register, handleSubmit, watch, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
-      property_type:  'flat',
-      chain_status:   'unknown',
-      buyer_position: 'mortgage_agreed',
+      asking_price:     prefillPrice,
+      property_type:    prefillType,
+      chain_status:     'unknown',
+      buyer_position:   'mortgage_agreed',
+      seller_situation: prefillContext || undefined,
     },
   })
 
@@ -113,6 +121,13 @@ export default function OfferPage() {
         title="Offer Strategy"
         description="Tell HomeReady about the property and your position. We'll calculate the right offer, give you leverage points, and write the opening script."
       />
+
+      {prefillPrice && (
+        <div className="flex items-center gap-2 text-xs text-purple bg-purple-faint border border-purple/20 rounded-xl px-4 py-2.5">
+          <CheckCircle className="w-3.5 h-3.5 shrink-0" />
+          Pre-filled from your decoded listing — review and adjust before generating.
+        </div>
+      )}
 
       <SolidCard>
         <form onSubmit={handleSubmit(d => mutation.mutate(d))} className="space-y-5">
