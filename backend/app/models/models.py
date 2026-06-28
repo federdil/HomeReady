@@ -4,8 +4,9 @@ One table per core domain — keep it lean for MVP.
 """
 import uuid
 from datetime import datetime
-from sqlalchemy import String, DateTime, JSON, Integer, ForeignKey, Enum
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import String, DateTime, JSON, Integer, Enum
+from sqlalchemy.orm import Mapped, mapped_column
+
 from sqlalchemy.dialects.postgresql import UUID
 from app.core.database import Base
 import enum
@@ -26,18 +27,6 @@ class StageStatus(str, enum.Enum):
     COMPLETE = "complete"
 
 
-# ── User ──────────────────────────────────────────────────────────────────
-class User(Base):
-    __tablename__ = "users"
-
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-
-    journey: Mapped["Journey"] = relationship("Journey", back_populates="user", uselist=False)
-    analyses: Mapped[list["Analysis"]] = relationship("Analysis", back_populates="user")
-
-
 # ── Journey (one per user, tracks stage progress) ─────────────────────────
 class Journey(Base):
     __tablename__ = "journeys"
@@ -50,20 +39,6 @@ class Journey(Base):
     stage_statuses: Mapped[dict] = mapped_column(JSON, default=dict)
     journey_metadata: Mapped[dict] = mapped_column(JSON, default=dict)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-
-# ── Analysis (stores AI results for any feature) ──────────────────────────
-class Analysis(Base):
-    __tablename__ = "analyses"
-
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    feature: Mapped[str] = mapped_column(String(64), nullable=False)  # "listing_decoder", "survey", etc.
-    input_data: Mapped[dict] = mapped_column(JSON, nullable=False)
-    result: Mapped[dict] = mapped_column(JSON, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-
-    user: Mapped["User"] = relationship("User", back_populates="analyses")
 
 
 # ── Checklist items (post-completion tasks) ───────────────────────────────
