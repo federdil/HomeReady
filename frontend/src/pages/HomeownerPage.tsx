@@ -1,24 +1,45 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getChecklist, toggleChecklistItem } from '@/lib/api'
 import type { ChecklistItem } from '@/types'
-import { SolidCard, GlassCard, PageHeader, ProgressBar } from '@/components/ui'
-import { CheckCircle, Circle, Clock, AlertTriangle, Star, FolderOpen, Loader2 } from 'lucide-react'
+import { SolidCard, PageHeader, ProgressBar, Callout } from '@/components/ui'
+import { CheckCircle, Circle, Clock, AlertTriangle, Star, FolderOpen, Loader2, Key } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const CATEGORY_META = {
-  urgent:    { label: 'Urgent',    icon: AlertTriangle, color: 'text-red-500',   bg: 'bg-red-50',   border: 'border-red-200'  },
-  important: { label: 'Important', icon: Star,          color: 'text-amber',     bg: 'bg-amber-light', border: 'border-amber/30' },
-  admin:     { label: 'Admin',     icon: FolderOpen,    color: 'text-purple',    bg: 'bg-dusk',     border: 'border-dusk-deep' },
+  urgent: {
+    label: 'Urgent',
+    icon: AlertTriangle,
+    iconColor: 'text-danger',
+    iconBg: 'bg-danger/10',
+    border: 'border-danger/20',
+    headerBg: 'bg-danger-bg/40',
+  },
+  important: {
+    label: 'Important',
+    icon: Star,
+    iconColor: 'text-warning',
+    iconBg: 'bg-warning/10',
+    border: 'border-warning/20',
+    headerBg: 'bg-warning-bg/40',
+  },
+  admin: {
+    label: 'Admin',
+    icon: FolderOpen,
+    iconColor: 'text-brand',
+    iconBg: 'bg-brand-light',
+    border: 'border-border',
+    headerBg: 'bg-surface-2',
+  },
 }
 
 function DeadlineBadge({ days }: { days: number | null }) {
   if (!days) return null
-  const label = days === 1 ? 'Day 1' : `Within ${days} days`
+  const label  = days === 1 ? 'Day 1' : `Within ${days} days`
   const urgent = days <= 7
   return (
     <span className={cn(
-      'inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full',
-      urgent ? 'bg-red-50 text-red-600' : 'bg-dusk text-plum-soft'
+      'inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium',
+      urgent ? 'bg-danger-bg text-danger border border-danger/20' : 'bg-surface-2 border border-border text-ink-muted'
     )}>
       <Clock className="w-3 h-3" />
       {label}
@@ -53,27 +74,32 @@ function ChecklistRow({ item }: { item: ChecklistItem }) {
       onClick={() => mutation.mutate()}
       disabled={mutation.isPending}
       className={cn(
-        'w-full flex items-start gap-3 p-3 rounded-xl text-left transition-all',
-        'hover:bg-white/60 active:scale-[0.99]',
-        item.is_complete && 'opacity-60'
+        'w-full flex items-start gap-3 px-4 py-3.5 text-left transition-all rounded-xl',
+        'hover:bg-surface-2 active:scale-[0.99] group',
+        item.is_complete && 'opacity-55'
       )}
     >
-      <span className="mt-0.5 shrink-0">
+      {/* Checkbox */}
+      <span className="mt-0.5 shrink-0 transition-transform group-hover:scale-110">
         {mutation.isPending
-          ? <Loader2 className="w-5 h-5 text-purple animate-spin" />
+          ? <Loader2 className="w-5 h-5 text-brand animate-spin" />
           : item.is_complete
-          ? <CheckCircle className="w-5 h-5 text-sage" />
-          : <Circle className="w-5 h-5 text-plum-soft/40" />
+          ? <CheckCircle className="w-5 h-5 text-success" />
+          : <Circle className="w-5 h-5 text-border group-hover:text-brand transition-colors" />
         }
       </span>
+      {/* Content */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap mb-0.5">
-          <span className={cn('text-sm font-medium', item.is_complete ? 'line-through text-plum-soft' : 'text-plum')}>
+        <div className="flex items-center gap-2 flex-wrap mb-1">
+          <span className={cn(
+            'text-sm font-semibold transition-colors',
+            item.is_complete ? 'line-through text-ink-faint' : 'text-ink'
+          )}>
             {item.title}
           </span>
           <DeadlineBadge days={item.deadline_days} />
         </div>
-        <p className="text-xs text-plum-soft leading-relaxed">{item.description}</p>
+        <p className="text-xs text-ink-muted leading-relaxed">{item.description}</p>
       </div>
     </button>
   )
@@ -83,19 +109,30 @@ function CategorySection({ category, items }: { category: 'urgent' | 'important'
   const meta = CATEGORY_META[category]
   const Icon = meta.icon
   const done = items.filter(i => i.is_complete).length
+  const allDone = done === items.length
+
   return (
-    <SolidCard>
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <Icon className={cn('w-4 h-4', meta.color)} />
-          <h3 className="font-display text-base text-plum">{meta.label}</h3>
+    <div className={cn('card overflow-hidden border', meta.border)}>
+      {/* Category header */}
+      <div className={cn('flex items-center justify-between px-4 py-3.5 border-b border-border', meta.headerBg)}>
+        <div className="flex items-center gap-2.5">
+          <div className={cn('w-7 h-7 rounded-lg flex items-center justify-center', meta.iconBg)}>
+            <Icon className={cn('w-3.5 h-3.5', meta.iconColor)} />
+          </div>
+          <h3 className="font-display text-base text-ink">{meta.label}</h3>
+          {allDone && (
+            <span className="badge badge-success text-[10px]">All done</span>
+          )}
         </div>
-        <span className="text-xs text-plum-soft">{done}/{items.length} done</span>
+        <span className="text-xs font-semibold text-ink-muted tabular-nums">
+          {done}/{items.length}
+        </span>
       </div>
-      <div className="divide-y divide-white/40">
+      {/* Items */}
+      <div className="divide-y divide-border bg-white">
         {items.map(item => <ChecklistRow key={item.id} item={item} />)}
       </div>
-    </SolidCard>
+    </div>
   )
 }
 
@@ -108,17 +145,20 @@ export default function HomeownerPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-6 h-6 text-purple animate-spin" />
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-6 h-6 text-brand animate-spin" />
+          <p className="text-sm text-ink-muted">Loading your checklist…</p>
+        </div>
       </div>
     )
   }
 
   if (isError) {
     return (
-      <div className="py-20 text-center">
-        <p className="text-sm text-red-500 flex items-center justify-center gap-2">
-          <AlertTriangle className="w-4 h-4" /> Failed to load checklist. Make sure you're signed in.
-        </p>
+      <div className="py-12">
+        <Callout variant="danger">
+          Failed to load checklist. Make sure you're signed in and try refreshing.
+        </Callout>
       </div>
     )
   }
@@ -139,25 +179,33 @@ export default function HomeownerPage() {
       />
 
       {/* Progress hero */}
-      <GlassCard className="flex items-center gap-6 px-6 py-5">
-        <div className="shrink-0 text-center w-20">
-          <p className="font-display text-4xl text-plum">{pct}%</p>
-          <p className="text-xs text-plum-soft mt-0.5">complete</p>
+      <div className="card p-6 flex flex-col sm:flex-row items-start sm:items-center gap-5"
+        style={{ background: 'linear-gradient(135deg, #F5F3FF 0%, #EDE9F8 100%)', borderColor: 'rgba(91,61,174,0.15)' }}
+      >
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-16 rounded-2xl bg-brand/10 border border-brand/20 flex items-center justify-center shrink-0">
+            <Key className="w-7 h-7 text-brand" />
+          </div>
+          <div>
+            <p className="font-display text-4xl text-brand">{pct}%</p>
+            <p className="text-sm text-ink-muted font-medium">complete</p>
+          </div>
         </div>
-        <div className="flex-1">
-          <div className="flex justify-between mb-2 text-xs text-plum-soft">
+        <div className="flex-1 w-full sm:w-auto">
+          <div className="flex justify-between mb-2 text-xs font-semibold text-ink-muted">
             <span>{complete} tasks done</span>
             <span>{total - complete} remaining</span>
           </div>
           <ProgressBar value={pct} />
           {pct === 100 && (
-            <p className="text-xs text-sage font-medium mt-2 flex items-center gap-1">
-              <CheckCircle className="w-3.5 h-3.5" /> All done — you're fully set up!
+            <p className="text-sm text-success font-semibold mt-3 flex items-center gap-1.5">
+              <CheckCircle className="w-4 h-4" /> All done — you're fully set up!
             </p>
           )}
         </div>
-      </GlassCard>
+      </div>
 
+      {/* Checklist sections */}
       <div className="space-y-4 animate-results">
         {urgent.length    > 0 && <CategorySection category="urgent"    items={urgent} />}
         {important.length > 0 && <CategorySection category="important" items={important} />}

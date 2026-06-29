@@ -5,15 +5,15 @@ import { decodeListing, fetchRightmoveListing, saveProperty } from '@/lib/api'
 import { useMarkStage } from '@/lib/useMarkStage'
 import type { ListingDecoderResult, FetchedListing } from '@/types'
 import { cn } from '@/lib/utils'
-import { SolidCard, GlassCard, PageHeader, PrimaryButton, FormField, RiskBadge } from '@/components/ui'
+import { SolidCard, PageHeader, PrimaryButton, FormField, RiskBadge, Callout } from '@/components/ui'
 import {
   AlertTriangle, CheckCircle, HelpCircle, Eye, Home, Info,
   Loader2, Link, FileText, Bookmark, BookmarkCheck, MapPin, TrendingDown,
-  ArrowRight, ExternalLink,
+  ArrowRight, ExternalLink, ShieldAlert,
 } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 
-// ── Shared helpers ────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatGBP(n: number) {
   return '£' + n.toLocaleString('en-GB')
@@ -25,65 +25,95 @@ function severityToRiskLevel(s: string): 'low' | 'amber' | 'red' {
   return 'amber'
 }
 
+// ── Trust Ring — hero variant ─────────────────────────────────────────────────
+
 function TrustRing({ score }: { score: number }) {
-  const color = score >= 70 ? '#22A05A' : score >= 45 ? '#D97706' : '#DC2626'
-  const label = score >= 70 ? 'Reasonably transparent' : score >= 45 ? 'Some concerns' : 'Significant red flags'
+  const isGood   = score >= 70
+  const isMedium = score >= 45 && score < 70
+  const color  = isGood ? '#16A34A' : isMedium ? '#D97706' : '#DC2626'
+  const bgColor = isGood ? '#F0FDF4' : isMedium ? '#FFFBEB' : '#FEF2F2'
+  const label  = isGood ? 'Reasonably transparent' : isMedium ? 'Some concerns' : 'Significant red flags'
+  const badgeClass = isGood ? 'badge-success' : isMedium ? 'badge-warning' : 'badge-danger'
+
+  const r = 52
+  const circ = 2 * Math.PI * r
+  const dash = (score / 100) * circ
+
   return (
-    <div className="flex flex-col items-center gap-2 shrink-0">
-      <svg viewBox="0 0 120 120" className="w-24 h-24">
-        <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(200,190,220,0.3)" strokeWidth="10" />
-        <circle cx="60" cy="60" r="50" fill="none" stroke={color} strokeWidth="10"
-          strokeDasharray={`${score * 3.14} 314`} strokeLinecap="round"
-          transform="rotate(-90 60 60)" />
-        <text x="60" y="56" textAnchor="middle" fontSize="24" fontWeight="700" fill="#1E1030">{score}</text>
-        <text x="60" y="73" textAnchor="middle" fontSize="11" fill="#6B5A8A">/100</text>
-      </svg>
-      <p className="text-xs font-medium text-center" style={{ color }}>{label}</p>
+    <div className="flex flex-col items-center gap-3 shrink-0">
+      <div className="relative" style={{ width: 128, height: 128 }}>
+        {/* Background circle */}
+        <div className="absolute inset-0 rounded-full" style={{ background: bgColor }} />
+        <svg viewBox="0 0 128 128" className="absolute inset-0 w-full h-full">
+          <circle cx="64" cy="64" r={r} fill="none" stroke="rgba(0,0,0,0.06)" strokeWidth="10" />
+          <circle
+            cx="64" cy="64" r={r}
+            fill="none"
+            stroke={color}
+            strokeWidth="10"
+            strokeDasharray={`${dash} ${circ}`}
+            strokeLinecap="round"
+            transform="rotate(-90 64 64)"
+            style={{ transition: 'stroke-dasharray 0.8s cubic-bezier(0.4,0,0.2,1)' }}
+          />
+          <text x="64" y="60" textAnchor="middle" fontSize="28" fontWeight="700" fill="#111827" fontFamily="'DM Serif Display', serif">{score}</text>
+          <text x="64" y="77" textAnchor="middle" fontSize="12" fill="#6B7280" fontFamily="Inter, sans-serif">/100</text>
+        </svg>
+      </div>
+      <span className={cn('badge', badgeClass)}>{label}</span>
     </div>
   )
 }
 
-// ── Metadata pill strip ───────────────────────────────────────────────────
+// ── Metadata pills ────────────────────────────────────────────────────────────
 
-function MetaPill({ icon, label }: { icon: React.ReactNode; label: string }) {
+function MetaPill({ icon, label, variant }: { icon: React.ReactNode; label: string; variant?: 'warning' | 'danger' }) {
   return (
-    <span className="inline-flex items-center gap-1.5 text-xs text-plum-soft bg-white/60 px-2.5 py-1 rounded-full border border-white/60">
+    <span className={cn(
+      'inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border font-medium',
+      variant === 'danger'  ? 'bg-danger-bg border-danger/20 text-danger' :
+      variant === 'warning' ? 'bg-warning-bg border-warning/20 text-warning' :
+      'bg-surface-2 border-border text-ink-muted'
+    )}>
       {icon}{label}
     </span>
   )
 }
 
 function ListingMetadata({ fetched }: { fetched: FetchedListing }) {
-  const pills = []
-  if (fetched.price) pills.push({ icon: <span className="font-medium text-plum">£</span>, label: formatGBP(fetched.price) })
-  if (fetched.bedrooms) pills.push({ icon: <Home className="w-3 h-3" />, label: `${fetched.bedrooms} bed` })
+  const pills: { icon: React.ReactNode; label: string; variant?: 'warning' | 'danger' }[] = []
+  if (fetched.price)           pills.push({ icon: <span className="font-bold text-ink">£</span>, label: formatGBP(fetched.price) })
+  if (fetched.bedrooms)        pills.push({ icon: <Home className="w-3 h-3" />, label: `${fetched.bedrooms} bed` })
   if (fetched.days_on_market != null) pills.push({
-    icon: <span>📅</span>,
+    icon: <span className="text-[10px]">📅</span>,
     label: fetched.days_on_market > 0 ? `${fetched.days_on_market} days on market` : 'Just listed',
   })
   if (fetched.reduction_count > 0) pills.push({
-    icon: <TrendingDown className="w-3 h-3 text-amber" />,
+    icon: <TrendingDown className="w-3 h-3" />,
     label: `${fetched.reduction_count} price reduction${fetched.reduction_count > 1 ? 's' : ''}`,
+    variant: 'warning',
   })
-  if (fetched.tenure_type) pills.push({ icon: <FileText className="w-3 h-3" />, label: fetched.tenure_type })
-  if (fetched.lease_years) pills.push({
-    icon: <span className={fetched.lease_years < 80 ? '🔴' : '🟢'} />,
+  if (fetched.tenure_type)     pills.push({ icon: <FileText className="w-3 h-3" />, label: fetched.tenure_type })
+  if (fetched.lease_years)     pills.push({
+    icon: <span className="text-[10px]">{(fetched.lease_years ?? 999) < 80 ? '🔴' : '🟢'}</span>,
     label: `${fetched.lease_years}yr lease`,
+    variant: (fetched.lease_years ?? 999) < 80 ? 'danger' : undefined,
   })
-  if (fetched.epc_rating) pills.push({ icon: <span>⚡</span>, label: `EPC ${fetched.epc_rating}` })
+  if (fetched.epc_rating)      pills.push({ icon: <span className="text-[10px]">⚡</span>, label: `EPC ${fetched.epc_rating}` })
   if (fetched.photo_count > 0 && fetched.photo_count < 5) pills.push({
-    icon: <AlertTriangle className="w-3 h-3 text-amber" />,
+    icon: <AlertTriangle className="w-3 h-3" />,
     label: `Only ${fetched.photo_count} photos`,
+    variant: 'warning',
   })
   if (!pills.length) return null
   return (
-    <div className="flex flex-wrap gap-2 mt-3">
-      {pills.map((p, i) => <MetaPill key={i} icon={p.icon} label={p.label} />)}
+    <div className="flex flex-wrap gap-2 mt-4">
+      {pills.map((p, i) => <MetaPill key={i} icon={p.icon} label={p.label} variant={p.variant} />)}
     </div>
   )
 }
 
-// ── Context CTAs ──────────────────────────────────────────────────────────
+// ── Context CTAs ──────────────────────────────────────────────────────────────
 
 function ContextCTAs({ result, fetched }: { result: ListingDecoderResult; fetched: FetchedListing | null }) {
   const navigate = useNavigate()
@@ -93,21 +123,21 @@ function ContextCTAs({ result, fetched }: { result: ListingDecoderResult; fetche
   const redFlagContext = result.red_flags.slice(0, 2).join('; ')
 
   return (
-    <div className="grid sm:grid-cols-2 gap-3 mt-2">
+    <div className="grid sm:grid-cols-2 gap-3">
       <button
         onClick={() => navigate(`/evaluate/neighbourhood${postcode ? `?postcode=${encodeURIComponent(postcode)}` : ''}`)}
-        className="flex items-center gap-3 p-4 rounded-xl bg-white/60 border border-white/60 hover:bg-white/80 transition-colors text-left group"
+        className="flex items-center gap-4 p-4 rounded-xl bg-surface-2 border border-border hover:border-brand/30 hover:bg-brand-light/30 transition-all text-left group"
       >
-        <div className="w-9 h-9 rounded-xl bg-purple-faint flex items-center justify-center shrink-0">
-          <MapPin className="w-4 h-4 text-purple" />
+        <div className="w-10 h-10 rounded-xl bg-brand-light flex items-center justify-center shrink-0 group-hover:bg-brand group-hover:text-white transition-colors">
+          <MapPin className="w-4 h-4 text-brand group-hover:text-white transition-colors" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-plum">Check the neighbourhood</p>
-          <p className="text-xs text-plum-soft mt-0.5 truncate">
+          <p className="text-sm font-semibold text-ink">Check the neighbourhood</p>
+          <p className="text-xs text-ink-muted mt-0.5 truncate">
             {postcode ? `Auto-filled: ${postcode}` : 'Transport, schools & flood risk'}
           </p>
         </div>
-        <ArrowRight className="w-4 h-4 text-plum-soft/40 group-hover:text-purple transition-colors shrink-0" />
+        <ArrowRight className="w-4 h-4 text-ink-faint group-hover:text-brand transition-colors shrink-0" />
       </button>
 
       <button
@@ -118,49 +148,80 @@ function ContextCTAs({ result, fetched }: { result: ListingDecoderResult; fetche
           if (redFlagContext) params.set('context', redFlagContext)
           navigate(`/offer?${params.toString()}`)
         }}
-        className="flex items-center gap-3 p-4 rounded-xl bg-white/60 border border-white/60 hover:bg-white/80 transition-colors text-left group"
+        className="flex items-center gap-4 p-4 rounded-xl bg-surface-2 border border-border hover:border-brand/30 hover:bg-brand-light/30 transition-all text-left group"
       >
-        <div className="w-9 h-9 rounded-xl bg-purple-faint flex items-center justify-center shrink-0">
-          <TrendingDown className="w-4 h-4 text-purple" />
+        <div className="w-10 h-10 rounded-xl bg-brand-light flex items-center justify-center shrink-0 group-hover:bg-brand transition-colors">
+          <TrendingDown className="w-4 h-4 text-brand group-hover:text-white transition-colors" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-plum">Build offer strategy</p>
-          <p className="text-xs text-plum-soft mt-0.5 truncate">
+          <p className="text-sm font-semibold text-ink">Build offer strategy</p>
+          <p className="text-xs text-ink-muted mt-0.5 truncate">
             {price ? `Pre-filled: ${formatGBP(price)}` : 'Leverage points & opening script'}
           </p>
         </div>
-        <ArrowRight className="w-4 h-4 text-plum-soft/40 group-hover:text-purple transition-colors shrink-0" />
+        <ArrowRight className="w-4 h-4 text-ink-faint group-hover:text-brand transition-colors shrink-0" />
       </button>
     </div>
   )
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────
+// ── Sub-nav ───────────────────────────────────────────────────────────────────
+
+function SubNav() {
+  return (
+    <div className="flex gap-2 text-sm font-semibold flex-wrap">
+      <NavLink to="/evaluate" end
+        className={({ isActive }) => cn(
+          'px-4 py-2 rounded-xl transition-colors',
+          isActive ? 'bg-brand text-white shadow-sm' : 'bg-surface-2 border border-border text-ink-muted hover:text-ink hover:bg-surface-3'
+        )}
+      >
+        Listing Decoder
+      </NavLink>
+      <NavLink to="/evaluate/neighbourhood"
+        className={({ isActive }) => cn(
+          'px-4 py-2 rounded-xl transition-colors',
+          isActive ? 'bg-brand text-white shadow-sm' : 'bg-surface-2 border border-border text-ink-muted hover:text-ink hover:bg-surface-3'
+        )}
+      >
+        Neighbourhood Briefing
+      </NavLink>
+      <NavLink to="/shortlist"
+        className={({ isActive }) => cn(
+          'px-4 py-2 rounded-xl transition-colors flex items-center gap-2',
+          isActive ? 'bg-brand text-white shadow-sm' : 'bg-surface-2 border border-border text-ink-muted hover:text-ink hover:bg-surface-3'
+        )}
+      >
+        <Bookmark className="w-3.5 h-3.5" />
+        My Shortlist
+      </NavLink>
+    </div>
+  )
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function EvaluatePage() {
-  const [result, setResult]     = useState<ListingDecoderResult | null>(null)
-  const [fetched, setFetched]   = useState<FetchedListing | null>(null)
+  const [result, setResult]       = useState<ListingDecoderResult | null>(null)
+  const [fetched, setFetched]     = useState<FetchedListing | null>(null)
   const [inputMode, setInputMode] = useState<'url' | 'paste'>('url')
-  const [url, setUrl]           = useState('')
+  const [url, setUrl]             = useState('')
   const [pasteText, setPasteText] = useState('')
   const [propertyType, setPropertyType] = useState('')
-  const [saved, setSaved]       = useState(false)
+  const [saved, setSaved]         = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const markStage = useMarkStage()
   const qc = useQueryClient()
 
-  // Step 1: fetch listing from Rightmove URL
   const fetchMutation = useMutation({
     mutationFn: fetchRightmoveListing,
     onSuccess: (data) => {
       setFetched(data)
       if (data.property_type) setPropertyType(data.property_type)
-      // Auto-decode immediately
       decodeMutation.mutate({ listing_text: data.listing_text, property_type: data.property_type || propertyType })
     },
   })
 
-  // Step 2: decode the listing text
   const decodeMutation = useMutation({
     mutationFn: decodeListing,
     onSuccess: (data) => {
@@ -171,7 +232,6 @@ export default function EvaluatePage() {
     },
   })
 
-  // Save to shortlist
   const saveMutation = useMutation({
     mutationFn: () => saveProperty({
       rightmove_url: fetched?.rightmove_url ?? null,
@@ -197,22 +257,18 @@ export default function EvaluatePage() {
   const handleUrlSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!url.trim()) return
-    setResult(null)
-    setFetched(null)
-    setSaved(false)
+    setResult(null); setFetched(null); setSaved(false)
     fetchMutation.mutate(url.trim())
   }
 
   const handlePasteSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!pasteText.trim()) return
-    setResult(null)
-    setFetched(null)
-    setSaved(false)
+    setResult(null); setFetched(null); setSaved(false)
     decodeMutation.mutate({ listing_text: pasteText, property_type: propertyType })
   }
 
-  const isPending = fetchMutation.isPending || decodeMutation.isPending
+  const isPending  = fetchMutation.isPending || decodeMutation.isPending
   const fetchError = fetchMutation.error as any
   const decodeError = decodeMutation.error as any
 
@@ -224,50 +280,28 @@ export default function EvaluatePage() {
         description="Paste a Rightmove link — HomeReady fetches the listing, decodes the estate agent language, surfaces hidden risks, and tells you what to ask at the viewing."
       />
 
-      {/* Sub-nav */}
-      <div className="flex gap-2 text-xs font-medium">
-        <NavLink to="/evaluate" end
-          className={({ isActive }) => cn('px-4 py-1.5 rounded-full transition-colors',
-            isActive ? 'btn-primary py-1.5 px-4' : 'btn-ghost py-1.5 px-4'
-          )}
-        >
-          Listing Decoder
-        </NavLink>
-        <NavLink to="/evaluate/neighbourhood"
-          className={({ isActive }) => cn('px-4 py-1.5 rounded-full transition-colors',
-            isActive ? 'btn-primary py-1.5 px-4' : 'btn-ghost py-1.5 px-4'
-          )}
-        >
-          Neighbourhood Briefing
-        </NavLink>
-        <NavLink to="/shortlist"
-          className={({ isActive }) => cn('px-4 py-1.5 rounded-full transition-colors flex items-center gap-1.5',
-            isActive ? 'btn-primary py-1.5 px-4' : 'btn-ghost py-1.5 px-4'
-          )}
-        >
-          <Bookmark className="w-3 h-3" />
-          My Shortlist
-        </NavLink>
-      </div>
+      {/* Sub-navigation */}
+      <SubNav />
 
       {/* Input card */}
-      <SolidCard className="space-y-4">
+      <SolidCard>
         {/* Mode toggle */}
-        <div className="flex gap-2 text-xs font-medium">
-          <button type="button" onClick={() => setInputMode('url')}
-            className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-colors',
-              inputMode === 'url' ? 'bg-purple text-white' : 'bg-white/50 text-plum-soft hover:text-plum border border-white/60'
-            )}
-          >
-            <Link className="w-3 h-3" /> Rightmove URL
-          </button>
-          <button type="button" onClick={() => setInputMode('paste')}
-            className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-colors',
-              inputMode === 'paste' ? 'bg-purple text-white' : 'bg-white/50 text-plum-soft hover:text-plum border border-white/60'
-            )}
-          >
-            <FileText className="w-3 h-3" /> Paste text
-          </button>
+        <div className="flex gap-2 mb-5">
+          {(['url', 'paste'] as const).map(m => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => setInputMode(m)}
+              className={cn(
+                'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors',
+                inputMode === m
+                  ? 'bg-brand text-white shadow-sm'
+                  : 'bg-surface-2 border border-border text-ink-muted hover:text-ink'
+              )}
+            >
+              {m === 'url' ? <><Link className="w-3.5 h-3.5" /> Rightmove URL</> : <><FileText className="w-3.5 h-3.5" /> Paste text</>}
+            </button>
+          ))}
         </div>
 
         {inputMode === 'url' ? (
@@ -290,34 +324,30 @@ export default function EvaluatePage() {
               </div>
             </FormField>
 
-            {/* Status indicators */}
             {fetchMutation.isPending && (
-              <div className="flex items-center gap-2 text-xs text-plum-soft">
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-purple" />
-                Fetching listing from Rightmove…
+              <div className="flex items-center gap-2.5 text-sm text-ink-muted bg-surface-2 rounded-xl px-4 py-3">
+                <Loader2 className="w-4 h-4 animate-spin text-brand shrink-0" />
+                <span>Fetching listing from Rightmove…</span>
               </div>
             )}
             {decodeMutation.isPending && fetched && (
-              <div className="flex items-center gap-2 text-xs text-plum-soft">
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-purple" />
-                Decoding with AI — reading between the lines…
+              <div className="flex items-center gap-2.5 text-sm text-ink-muted bg-surface-2 rounded-xl px-4 py-3">
+                <Loader2 className="w-4 h-4 animate-spin text-brand shrink-0" />
+                <span>Decoding with AI — reading between the lines…</span>
               </div>
             )}
-
             {fetchError && (
-              <p className="text-sm text-red-500 flex items-center gap-1.5">
-                <AlertTriangle className="w-4 h-4 shrink-0" />
-                {fetchError?.userMessage ?? fetchError?.message ?? 'Could not fetch listing.'}
-                {' '}
-                <button type="button" onClick={() => setInputMode('paste')}
-                  className="underline hover:no-underline">Paste text instead</button>
-              </p>
+              <Callout variant="danger">
+                {fetchError?.userMessage ?? fetchError?.message ?? 'Could not fetch listing.'}{' '}
+                <button type="button" onClick={() => setInputMode('paste')} className="underline font-semibold">
+                  Paste text instead
+                </button>
+              </Callout>
             )}
             {decodeError && (
-              <p className="text-sm text-red-500 flex items-center gap-1.5">
-                <AlertTriangle className="w-4 h-4" />
+              <Callout variant="danger">
                 {decodeError?.userMessage ?? 'Decode failed. Please try again.'}
-              </p>
+              </Callout>
             )}
           </form>
         ) : (
@@ -346,10 +376,9 @@ export default function EvaluatePage() {
               </PrimaryButton>
             </div>
             {decodeError && (
-              <p className="text-sm text-red-500 flex items-center gap-1.5">
-                <AlertTriangle className="w-4 h-4" />
+              <Callout variant="danger">
                 {decodeError?.userMessage ?? 'Something went wrong. Please try again.'}
-              </p>
+              </Callout>
             )}
           </form>
         )}
@@ -357,43 +386,51 @@ export default function EvaluatePage() {
 
       {/* Results */}
       {result && (
-        <div className="space-y-4 animate-results">
+        <div className="space-y-5 animate-results">
 
-          {/* Hero: trust score + summary + metadata */}
+          {/* Hero: Trust score */}
           <SolidCard>
-            <div className="flex flex-col sm:flex-row gap-5 items-start sm:items-center">
+            <div className="flex flex-col sm:flex-row gap-6 items-start">
+              {/* Score ring — hero */}
               <TrustRing score={result.trust_score} />
+
+              {/* Summary */}
               <div className="flex-1 min-w-0">
                 {fetched?.address && (
-                  <div className="flex items-center gap-1.5 mb-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-plum-soft shrink-0" />
-                    <p className="text-xs text-plum-soft truncate">{fetched.address}</p>
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <MapPin className="w-3.5 h-3.5 text-ink-faint shrink-0" />
+                    <p className="text-sm text-ink-muted truncate">{fetched.address}</p>
                     {fetched.rightmove_url && (
-                      <a href={fetched.rightmove_url} target="_blank" rel="noopener noreferrer"
-                        className="text-purple hover:underline ml-auto shrink-0">
-                        <ExternalLink className="w-3 h-3" />
+                      <a
+                        href={fetched.rightmove_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-brand hover:text-brand-hover ml-auto shrink-0 p-1 rounded hover:bg-brand-light transition-colors"
+                        title="View on Rightmove"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
                       </a>
                     )}
                   </div>
                 )}
-                <h2 className="font-display text-lg md:text-xl text-plum mb-1">The honest picture</h2>
-                <p className="text-sm text-plum-soft leading-relaxed">{result.summary}</p>
+                <h2 className="font-display text-xl text-ink mb-2">The honest picture</h2>
+                <p className="text-base text-ink-muted leading-relaxed">{result.summary}</p>
                 {fetched && <ListingMetadata fetched={fetched} />}
               </div>
             </div>
 
             {/* Save to shortlist */}
-            <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/40">
-              <span className="text-xs text-plum-soft">Want to come back to this property?</span>
+            <div className="flex items-center justify-between mt-5 pt-5 border-t border-border">
+              <span className="text-sm text-ink-muted">Want to revisit this property?</span>
               {saved ? (
-                <span className="flex items-center gap-1.5 text-xs text-sage font-medium">
+                <span className="flex items-center gap-2 text-sm text-success font-semibold">
                   <BookmarkCheck className="w-4 h-4" /> Saved to shortlist
                 </span>
               ) : (
                 <button
                   onClick={() => saveMutation.mutate()}
                   disabled={saveMutation.isPending}
-                  className="flex items-center gap-1.5 text-xs text-purple hover:text-purple/80 font-medium transition-colors disabled:opacity-50"
+                  className="flex items-center gap-2 text-sm text-brand hover:text-brand-hover font-semibold transition-colors disabled:opacity-50 px-3 py-1.5 rounded-lg hover:bg-brand-light"
                 >
                   {saveMutation.isPending
                     ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving…</>
@@ -402,97 +439,131 @@ export default function EvaluatePage() {
                 </button>
               )}
             </div>
-            {saveError && <p className="text-xs text-red-500 mt-1">{saveError}</p>}
+            {saveError && <p className="text-xs text-danger mt-2">{saveError}</p>}
           </SolidCard>
 
           {/* Red + green flags */}
-          <div className="grid md:grid-cols-2 gap-4">
-            {result.red_flags.length > 0 && (
-              <SolidCard>
-                <div className="flex items-center gap-2 mb-3">
-                  <AlertTriangle className="w-4 h-4 text-red-500" />
-                  <h3 className="font-display text-base text-plum">Red flags</h3>
+          {(result.red_flags.length > 0 || result.green_flags.length > 0) && (
+            <div className="grid md:grid-cols-2 gap-4">
+              {result.red_flags.length > 0 && (
+                <div className="flag-col-red">
+                  <div className="flex items-center gap-2 mb-3">
+                    <ShieldAlert className="w-4 h-4 text-danger" />
+                    <h3 className="font-display text-base text-ink">Red flags</h3>
+                    <span className="ml-auto badge badge-danger">{result.red_flags.length}</span>
+                  </div>
+                  <div className="space-y-0">
+                    {result.red_flags.map((f, i) => (
+                      <div key={i} className="flag-item">
+                        <AlertTriangle className="w-3.5 h-3.5 text-danger mt-0.5 shrink-0" />
+                        <span className="text-ink-muted">{f}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <ul className="space-y-2">
-                  {result.red_flags.map((f, i) => (
-                    <li key={i} className="flex gap-2 text-sm text-plum-soft">
-                      <AlertTriangle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />{f}
-                    </li>
-                  ))}
-                </ul>
-              </SolidCard>
-            )}
-            {result.green_flags.length > 0 && (
-              <SolidCard>
-                <div className="flex items-center gap-2 mb-3">
-                  <CheckCircle className="w-4 h-4 text-sage" />
-                  <h3 className="font-display text-base text-plum">Green flags</h3>
+              )}
+              {result.green_flags.length > 0 && (
+                <div className="flag-col-green">
+                  <div className="flex items-center gap-2 mb-3">
+                    <CheckCircle className="w-4 h-4 text-success" />
+                    <h3 className="font-display text-base text-ink">Green flags</h3>
+                    <span className="ml-auto badge badge-success">{result.green_flags.length}</span>
+                  </div>
+                  <div className="space-y-0">
+                    {result.green_flags.map((f, i) => (
+                      <div key={i} className="flag-item">
+                        <CheckCircle className="w-3.5 h-3.5 text-success mt-0.5 shrink-0" />
+                        <span className="text-ink-muted">{f}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <ul className="space-y-2">
-                  {result.green_flags.map((f, i) => (
-                    <li key={i} className="flex gap-2 text-sm text-plum-soft">
-                      <CheckCircle className="w-4 h-4 text-sage mt-0.5 shrink-0" />{f}
-                    </li>
-                  ))}
-                </ul>
-              </SolidCard>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
-          {/* Euphemisms */}
+          {/* Decoded language */}
           {result.euphemisms.length > 0 && (
             <SolidCard>
-              <div className="flex items-center gap-2 mb-3">
-                <Eye className="w-4 h-4 text-purple" />
-                <h3 className="font-display text-base text-plum">Decoded language</h3>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-brand-light flex items-center justify-center">
+                  <Eye className="w-4 h-4 text-brand" />
+                </div>
+                <div>
+                  <h3 className="font-display text-base text-ink">Decoded language</h3>
+                  <p className="text-xs text-ink-muted">What the estate agent really means</p>
+                </div>
               </div>
               <div className="space-y-3">
                 {result.euphemisms.map((e, i) => (
-                  <div key={i} className="flex gap-3 items-start">
+                  <div key={i} className="flex flex-col sm:flex-row sm:items-center gap-2 py-2.5 border-b border-border last:border-0">
                     <RiskBadge level={severityToRiskLevel(e.severity)} label={e.phrase} />
-                    <p className="text-sm text-plum-soft mt-0.5">→ {e.likely_meaning}</p>
+                    <span className="text-ink-faint hidden sm:block">→</span>
+                    <p className="text-sm text-ink-muted flex-1">{e.likely_meaning}</p>
                   </div>
                 ))}
               </div>
             </SolidCard>
           )}
 
-          {/* Leasehold */}
+          {/* Leasehold risk */}
           {result.leasehold.detected && (
-            <SolidCard className={result.leasehold.risk_level === 'critical' ? 'border-red-200' : ''}>
-              <div className="flex items-center gap-2 mb-3">
-                <Home className="w-4 h-4 text-purple" />
-                <h3 className="font-display text-base text-plum">Leasehold risk</h3>
-                {result.leasehold.risk_level && (
-                  <RiskBadge
-                    level={result.leasehold.risk_level === 'critical' ? 'critical' : result.leasehold.risk_level === 'high' ? 'red' : result.leasehold.risk_level === 'medium' ? 'amber' : 'low'}
-                    label={result.leasehold.risk_level}
-                  />
-                )}
+            <div className={cn(
+              'card p-5',
+              result.leasehold.risk_level === 'critical' || result.leasehold.risk_level === 'high'
+                ? 'border-danger/30 bg-danger-bg/30'
+                : 'border-warning/30 bg-warning-bg/30'
+            )}>
+              <div className="flex items-center gap-3 mb-3">
+                <div className={cn(
+                  'w-8 h-8 rounded-lg flex items-center justify-center',
+                  result.leasehold.risk_level === 'critical' || result.leasehold.risk_level === 'high'
+                    ? 'bg-danger/10' : 'bg-warning/10'
+                )}>
+                  <Home className={cn(
+                    'w-4 h-4',
+                    result.leasehold.risk_level === 'critical' || result.leasehold.risk_level === 'high'
+                      ? 'text-danger' : 'text-warning'
+                  )} />
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="font-display text-base text-ink">Leasehold risk</h3>
+                  {result.leasehold.risk_level && (
+                    <RiskBadge
+                      level={result.leasehold.risk_level === 'critical' ? 'critical' : result.leasehold.risk_level === 'high' ? 'red' : result.leasehold.risk_level === 'medium' ? 'amber' : 'low'}
+                      label={result.leasehold.risk_level}
+                    />
+                  )}
+                </div>
               </div>
-              <p className="text-sm text-plum-soft leading-relaxed">{result.leasehold.explanation}</p>
+              <p className="text-sm text-ink-muted leading-relaxed">{result.leasehold.explanation}</p>
               {result.leasehold.lease_years && (
-                <p className="mt-2 text-xs font-medium">
+                <p className="mt-3 text-sm font-semibold">
                   Lease length detected:{' '}
-                  <span className={cn('font-bold', (result.leasehold.lease_years ?? 999) < 80 ? 'text-red-600' : 'text-sage')}>
+                  <span className={cn((result.leasehold.lease_years ?? 999) < 80 ? 'text-danger' : 'text-success')}>
                     {result.leasehold.lease_years} years
                   </span>
                 </p>
               )}
-            </SolidCard>
+            </div>
           )}
 
-          {/* Missing info */}
+          {/* Missing information */}
           {result.missing_info.length > 0 && (
             <SolidCard>
-              <div className="flex items-center gap-2 mb-3">
-                <Info className="w-4 h-4 text-purple" />
-                <h3 className="font-display text-base text-plum">Missing information</h3>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-warning/10 flex items-center justify-center">
+                  <Info className="w-4 h-4 text-warning" />
+                </div>
+                <div>
+                  <h3 className="font-display text-base text-ink">Missing information</h3>
+                  <p className="text-xs text-ink-muted">Ask the agent or check the listing</p>
+                </div>
               </div>
-              <ul className="space-y-1.5">
+              <ul className="space-y-2">
                 {result.missing_info.map((m, i) => (
-                  <li key={i} className="flex gap-2 text-sm text-plum-soft">
-                    <HelpCircle className="w-4 h-4 text-amber shrink-0 mt-0.5" />{m}
+                  <li key={i} className="flex gap-2.5 text-sm text-ink-muted py-1.5 border-b border-border last:border-0">
+                    <HelpCircle className="w-4 h-4 text-warning shrink-0 mt-0.5" />{m}
                   </li>
                 ))}
               </ul>
@@ -501,24 +572,32 @@ export default function EvaluatePage() {
 
           {/* Viewing questions */}
           {result.viewing_questions.length > 0 && (
-            <GlassCard>
-              <div className="flex items-center gap-2 mb-3">
-                <HelpCircle className="w-4 h-4 text-purple" />
-                <h3 className="font-display text-base text-plum">Questions to ask at the viewing</h3>
+            <div className="card-tinted p-5 rounded-2xl border border-brand/15">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-brand-light flex items-center justify-center">
+                  <HelpCircle className="w-4 h-4 text-brand" />
+                </div>
+                <div>
+                  <h3 className="font-display text-base text-ink">Questions to ask at the viewing</h3>
+                  <p className="text-xs text-ink-muted">Prepared by HomeReady based on this listing</p>
+                </div>
               </div>
-              <ol className="space-y-2">
+              <ol className="space-y-3">
                 {result.viewing_questions.map((q, i) => (
-                  <li key={i} className="flex gap-2 text-sm text-plum">
-                    <span className="font-medium text-purple shrink-0">{i + 1}.</span>{q}
+                  <li key={i} className="flex gap-3 text-sm text-ink-muted">
+                    <span className="w-5 h-5 rounded-full bg-brand text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
+                      {i + 1}
+                    </span>
+                    <span className="leading-relaxed">{q}</span>
                   </li>
                 ))}
               </ol>
-            </GlassCard>
+            </div>
           )}
 
-          {/* Context CTAs */}
+          {/* Continue your research */}
           <div>
-            <p className="text-xs text-plum-soft font-medium uppercase tracking-wide mb-3">Continue your research</p>
+            <p className="section-label mb-3">Continue your research</p>
             <ContextCTAs result={result} fetched={fetched} />
           </div>
 

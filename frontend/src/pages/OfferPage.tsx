@@ -8,10 +8,10 @@ import { getOfferStrategy } from '@/lib/api'
 import { useMarkStage } from '@/lib/useMarkStage'
 import type { OfferStrategyResult } from '@/types'
 import { cn } from '@/lib/utils'
-import { SolidCard, GlassCard, PageHeader, PrimaryButton, FormField } from '@/components/ui'
+import { SolidCard, PageHeader, PrimaryButton, FormField, Callout } from '@/components/ui'
 import {
   AlertTriangle, CheckCircle, Lightbulb, MessageSquare,
-  PoundSterling, TrendingDown, ShieldAlert, ListChecks,
+  PoundSterling, TrendingDown, ShieldAlert, ListChecks, Copy, Check,
 } from 'lucide-react'
 
 const schema = z.object({
@@ -31,45 +31,49 @@ function formatGBP(n: number) {
   return '£' + n.toLocaleString('en-GB')
 }
 
+// ── Offer range meter ─────────────────────────────────────────────────────────
+
 function OfferMeter({ recommended, low, high, asking }: {
   recommended: number; low: number; high: number; asking: number
 }) {
-  const min = Math.min(low, asking) * 0.97
-  const max = Math.max(high, asking) * 1.01
+  const min  = Math.min(low, asking) * 0.97
+  const max  = Math.max(high, asking) * 1.01
   const span = max - min
-  const pct = (v: number) => `${Math.round(((v - min) / span) * 100)}%`
+  const pct  = (v: number) => `${Math.round(((v - min) / span) * 100)}%`
 
   return (
-    <div className="mt-4 mb-2">
-      <div className="relative h-3 rounded-full bg-dusk-deep overflow-visible mb-6">
+    <div className="mt-5 mb-2">
+      <div className="relative h-2.5 rounded-full bg-surface-3 overflow-visible mb-8">
         {/* Range band */}
         <div
-          className="absolute top-0 h-full rounded-full bg-sage/20"
+          className="absolute top-0 h-full rounded-full bg-success/20"
           style={{ left: pct(low), width: `calc(${pct(high)} - ${pct(low)})` }}
         />
         {/* Asking price marker */}
         <div className="absolute -top-1 -translate-x-1/2" style={{ left: pct(asking) }}>
-          <div className="w-1.5 h-5 rounded-full bg-red-400" />
-          <span className="absolute top-6 -translate-x-1/2 text-[10px] text-red-500 whitespace-nowrap font-medium">Asking</span>
+          <div className="w-1.5 h-4.5 rounded-full bg-danger" />
+          <span className="absolute top-5 -translate-x-1/2 text-[10px] text-danger whitespace-nowrap font-semibold">Asking</span>
         </div>
         {/* Recommended marker */}
         <div className="absolute -top-1.5 -translate-x-1/2 z-10" style={{ left: pct(recommended) }}>
-          <div className="w-2 h-6 rounded-full bg-purple" />
-          <span className="absolute top-7 -translate-x-1/2 text-[10px] text-purple whitespace-nowrap font-medium">Offer</span>
+          <div className="w-2 h-5 rounded-full bg-brand" />
+          <span className="absolute top-6 -translate-x-1/2 text-[10px] text-brand whitespace-nowrap font-semibold">Offer</span>
         </div>
       </div>
-      <div className="flex justify-between text-xs text-plum-soft">
-        <span>{formatGBP(low)}</span>
-        <span className="text-purple font-medium">Rec. {formatGBP(recommended)}</span>
-        <span>{formatGBP(high)}</span>
+      <div className="flex justify-between text-xs text-ink-muted">
+        <span className="font-medium">{formatGBP(low)}</span>
+        <span className="text-brand font-semibold">Recommended: {formatGBP(recommended)}</span>
+        <span className="font-medium">{formatGBP(high)}</span>
       </div>
     </div>
   )
 }
 
+// ── Main page ─────────────────────────────────────────────────────────────────
+
 export default function OfferPage() {
   const [result, setResult] = useState<OfferStrategyResult | null>(null)
-  const [copied, setCopied]  = useState(false)
+  const [copied, setCopied] = useState(false)
   const markStage = useMarkStage()
   const [searchParams] = useSearchParams()
 
@@ -109,7 +113,7 @@ export default function OfferPage() {
     if (!result) return
     navigator.clipboard.writeText(result.opening_script)
     setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    setTimeout(() => setCopied(false), 2500)
   }
 
   const saving = result ? result.walkaway_price - result.recommended_offer : 0
@@ -119,26 +123,30 @@ export default function OfferPage() {
       <PageHeader
         stage="Stage 3 — Offer & Negotiation"
         title="Offer Strategy"
-        description="Tell HomeReady about the property and your position. We'll calculate the right offer, give you leverage points, and write the opening script."
+        description="Tell HomeReady about the property and your position. We'll calculate the right offer, give you leverage points, and write your opening script."
       />
 
       {prefillPrice && (
-        <div className="flex items-center gap-2 text-xs text-purple bg-purple-faint border border-purple/20 rounded-xl px-4 py-2.5">
-          <CheckCircle className="w-3.5 h-3.5 shrink-0" />
+        <Callout variant="info">
           Pre-filled from your decoded listing — review and adjust before generating.
-        </div>
+        </Callout>
       )}
 
+      {/* Input form */}
       <SolidCard>
         <form onSubmit={handleSubmit(d => mutation.mutate(d))} className="space-y-5">
           {/* Core details */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FormField label="Asking price (£)" error={errors.asking_price?.message}>
-              <input
-                {...register('asking_price', { valueAsNumber: true })}
-                type="number" placeholder="e.g. 350000"
-                className="glass-input"
-              />
+            <FormField label="Asking price" error={errors.asking_price?.message}>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted text-sm font-semibold">£</span>
+                <input
+                  {...register('asking_price', { valueAsNumber: true })}
+                  type="number"
+                  placeholder="350000"
+                  className="glass-input pl-7"
+                />
+              </div>
             </FormField>
             <FormField label="Property type">
               <select {...register('property_type')} className="glass-input">
@@ -154,7 +162,8 @@ export default function OfferPage() {
             <FormField label="Weeks on market" hint="Leave blank if unknown">
               <input
                 {...register('weeks_on_market', { valueAsNumber: true })}
-                type="number" placeholder="e.g. 8"
+                type="number"
+                placeholder="e.g. 8"
                 className="glass-input"
               />
             </FormField>
@@ -189,18 +198,22 @@ export default function OfferPage() {
               </select>
             </FormField>
             {surveyOutcome && surveyOutcome !== 'clean' && surveyOutcome !== '' && (
-              <FormField label="Estimated repair cost (£)" hint="From your surveyor's report">
-                <input
-                  {...register('estimated_repair_cost', { valueAsNumber: true })}
-                  type="number" placeholder="e.g. 15000"
-                  className="glass-input"
-                />
+              <FormField label="Estimated repair cost" hint="From your surveyor's report">
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted text-sm font-semibold">£</span>
+                  <input
+                    {...register('estimated_repair_cost', { valueAsNumber: true })}
+                    type="number"
+                    placeholder="15000"
+                    className="glass-input pl-7"
+                  />
+                </div>
               </FormField>
             )}
           </div>
 
           {/* Optional context */}
-          <FormField label="Seller's situation" hint="Optional — anything you know (e.g. relocating, already bought, motivated)">
+          <FormField label="Seller's situation" hint="Optional — anything you know about their motivation">
             <input
               {...register('seller_situation')}
               placeholder="e.g. Seller has already bought and is keen to complete quickly"
@@ -222,33 +235,35 @@ export default function OfferPage() {
           </PrimaryButton>
 
           {mutation.isError && (
-            <p className="text-sm text-red-500 flex items-center gap-1.5">
-              <AlertTriangle className="w-4 h-4" />
+            <Callout variant="danger">
               {(mutation.error as any)?.userMessage ?? 'Something went wrong. Please try again.'}
-            </p>
+            </Callout>
           )}
         </form>
       </SolidCard>
 
+      {/* Results */}
       {result && (
-        <div className="space-y-4 animate-results">
+        <div className="space-y-5 animate-results">
 
           {/* Hero — offer numbers */}
-          <GlassCard>
-            <div className="flex flex-wrap items-start gap-4 mb-4">
+          <div className="card p-6"
+            style={{ background: 'linear-gradient(135deg, #F5F3FF 0%, #EDE9F8 100%)', borderColor: 'rgba(91,61,174,0.15)' }}
+          >
+            <div className="flex flex-wrap items-start gap-4">
               <div>
-                <p className="text-xs font-medium text-plum-soft uppercase tracking-wide mb-1">Recommended offer</p>
-                <p className="font-display text-3xl md:text-4xl text-purple">{formatGBP(result.recommended_offer)}</p>
-                <p className="text-xs text-plum-soft mt-0.5">
+                <p className="section-label mb-1">Recommended offer</p>
+                <p className="font-display text-4xl text-brand">{formatGBP(result.recommended_offer)}</p>
+                <p className="text-sm text-ink-muted mt-1">
                   Range: {formatGBP(result.offer_range.low)} – {formatGBP(result.offer_range.high)}
                 </p>
               </div>
               <div className="ml-auto text-right">
-                <p className="text-xs font-medium text-plum-soft uppercase tracking-wide mb-1">Walk-away price</p>
-                <p className="font-display text-xl text-plum">{formatGBP(result.walkaway_price)}</p>
+                <p className="section-label mb-1">Walk-away price</p>
+                <p className="font-display text-2xl text-ink">{formatGBP(result.walkaway_price)}</p>
                 {saving > 0 && (
-                  <p className="text-xs text-sage font-medium mt-0.5 flex items-center gap-1 justify-end">
-                    <TrendingDown className="w-3 h-3" /> {formatGBP(saving)} below asking
+                  <p className="text-sm text-success font-semibold mt-1 flex items-center gap-1 justify-end">
+                    <TrendingDown className="w-3.5 h-3.5" /> {formatGBP(saving)} below asking
                   </p>
                 )}
               </div>
@@ -259,95 +274,113 @@ export default function OfferPage() {
               high={result.offer_range.high}
               asking={mutation.variables?.asking_price ?? result.recommended_offer}
             />
-            <p className="text-sm text-plum-soft leading-relaxed mt-2">{result.offer_rationale}</p>
-          </GlassCard>
+            <p className="text-base text-ink-muted leading-relaxed mt-3">{result.offer_rationale}</p>
+          </div>
 
           {/* Leverage points */}
           {result.leverage_points.length > 0 && (
             <SolidCard>
-              <div className="flex items-center gap-2 mb-3">
-                <TrendingDown className="w-4 h-4 text-purple" />
-                <h3 className="font-display text-lg text-plum">Your leverage points</h3>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center">
+                  <TrendingDown className="w-4 h-4 text-success" />
+                </div>
+                <div>
+                  <h3 className="font-display text-lg text-ink">Your leverage points</h3>
+                  <p className="text-xs text-ink-muted">Use these to justify your offer</p>
+                </div>
               </div>
-              <ul className="space-y-2">
+              <ul className="space-y-2.5">
                 {result.leverage_points.map((pt, i) => (
-                  <li key={i} className="flex gap-2 text-sm text-plum-soft">
-                    <CheckCircle className="w-4 h-4 text-sage shrink-0 mt-0.5" />{pt}
+                  <li key={i} className="flex gap-2.5 text-sm text-ink-muted py-2 border-b border-border last:border-0">
+                    <CheckCircle className="w-4 h-4 text-success shrink-0 mt-0.5" />{pt}
                   </li>
                 ))}
               </ul>
             </SolidCard>
           )}
 
-          {/* Conditions */}
+          {/* Conditions to include */}
           {result.conditions_to_include.length > 0 && (
             <SolidCard>
-              <div className="flex items-center gap-2 mb-3">
-                <ListChecks className="w-4 h-4 text-purple" />
-                <h3 className="font-display text-lg text-plum">Conditions to include</h3>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-brand-light flex items-center justify-center">
+                  <ListChecks className="w-4 h-4 text-brand" />
+                </div>
+                <h3 className="font-display text-lg text-ink">Conditions to include</h3>
               </div>
-              <ul className="space-y-2">
+              <ol className="space-y-3">
                 {result.conditions_to_include.map((c, i) => (
-                  <li key={i} className="flex gap-2 text-sm text-plum-soft">
-                    <span className="w-5 h-5 rounded-full bg-purple-faint text-purple text-xs font-medium flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
-                    {c}
+                  <li key={i} className="flex gap-3 text-sm text-ink-muted">
+                    <span className="w-5 h-5 rounded-full bg-brand-light text-brand text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
+                      {i + 1}
+                    </span>
+                    <span className="leading-relaxed">{c}</span>
                   </li>
                 ))}
-              </ul>
+              </ol>
             </SolidCard>
           )}
 
           {/* Opening script */}
-          <GlassCard>
-            <div className="flex items-center justify-between gap-2 mb-3">
-              <div className="flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-purple" />
-                <h3 className="font-display text-lg text-plum">Opening script</h3>
+          <div className="card-tinted p-5 rounded-2xl border border-brand/15">
+            <div className="flex items-center justify-between gap-2 mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-brand-light flex items-center justify-center">
+                  <MessageSquare className="w-4 h-4 text-brand" />
+                </div>
+                <div>
+                  <h3 className="font-display text-lg text-ink">Opening script</h3>
+                  <p className="text-xs text-ink-muted">Read this when calling the agent</p>
+                </div>
               </div>
               <button
                 onClick={copyScript}
                 className={cn(
-                  'text-xs px-3 py-1.5 rounded-lg transition-colors',
-                  copied ? 'bg-sage-light text-sage font-medium' : 'btn-ghost py-1.5 px-3'
+                  'flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg font-semibold transition-all',
+                  copied
+                    ? 'bg-success/10 text-success border border-success/20'
+                    : 'bg-white border border-border text-ink-muted hover:text-ink hover:border-brand/30'
                 )}
               >
-                {copied ? '✓ Copied' : 'Copy'}
+                {copied ? <><Check className="w-3.5 h-3.5" /> Copied</> : <><Copy className="w-3.5 h-3.5" /> Copy</>}
               </button>
             </div>
-            <div className="bg-white/60 rounded-xl p-4 text-sm text-plum leading-relaxed whitespace-pre-wrap">
+            <div className="bg-white rounded-xl p-4 border border-border text-sm text-ink leading-relaxed whitespace-pre-wrap font-mono">
               {result.opening_script}
             </div>
-          </GlassCard>
+          </div>
 
-          {/* Likely counter */}
+          {/* What to expect next */}
           <SolidCard>
-            <div className="flex items-center gap-2 mb-2">
-              <ShieldAlert className="w-4 h-4 text-amber" />
-              <h3 className="font-display text-base text-plum">What to expect next</h3>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-8 h-8 rounded-lg bg-warning/10 flex items-center justify-center">
+                <ShieldAlert className="w-4 h-4 text-warning" />
+              </div>
+              <h3 className="font-display text-base text-ink">What to expect next</h3>
             </div>
-            <p className="text-sm text-plum-soft leading-relaxed">{result.likely_counter}</p>
+            <p className="text-base text-ink-muted leading-relaxed">{result.likely_counter}</p>
           </SolidCard>
 
-          {/* Tips */}
+          {/* Negotiation tips */}
           {result.negotiation_tips.length > 0 && (
             <SolidCard>
-              <div className="flex items-center gap-2 mb-3">
-                <Lightbulb className="w-4 h-4 text-purple" />
-                <h3 className="font-display text-lg text-plum">Negotiation tips</h3>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-brand-light flex items-center justify-center">
+                  <Lightbulb className="w-4 h-4 text-brand" />
+                </div>
+                <h3 className="font-display text-lg text-ink">Negotiation tips</h3>
               </div>
-              <ul className="space-y-2">
+              <ul className="space-y-2.5">
                 {result.negotiation_tips.map((tip, i) => (
-                  <li key={i} className="flex gap-2 text-sm text-plum-soft">
-                    <PoundSterling className="w-4 h-4 text-purple shrink-0 mt-0.5" />{tip}
+                  <li key={i} className="flex gap-2.5 text-sm text-ink-muted py-2 border-b border-border last:border-0">
+                    <Lightbulb className="w-4 h-4 text-brand shrink-0 mt-0.5" />{tip}
                   </li>
                 ))}
               </ul>
             </SolidCard>
           )}
 
-          <p className="text-xs text-plum-soft text-center opacity-60 pb-2">
-            This is AI-generated guidance only, not financial advice. Always discuss offers with your estate agent or solicitor.
-          </p>
+
         </div>
       )}
     </div>

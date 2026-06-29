@@ -581,12 +581,14 @@ const PHASES = [
       { id:'f32', name:'Negotiation coach (R-09)', desc:'POST /offer/strategy → recommended offer, leverage points, opening script, walkaway price', status:'done', tag:'backend' },
       { id:'f33', name:'Negotiation UI', desc:'Stage 3 page — offer meter, leverage points, copy-to-clipboard script, negotiation tips', status:'done', tag:'frontend' },
       { id:'f35', name:'Mobile-responsive layout', desc:'Bottom nav bar (mobile), hamburger drawer, sidebar hidden on small screens, responsive forms', status:'done', tag:'frontend' },
-      { id:'f34', name:'Viewing question generator (R-12)', desc:'Tailored question list from listing analysis', status:'pending', tag:'backend' },
+      { id:'f34', name:'Viewing question generator UI', desc:'Stage 2 tab — question list grouped by theme, printable/shareable, pre-filled from decoded listing', status:'pending', tag:'frontend' },
       { id:'f39', name:'Rightmove URL scraper', desc:'GET Rightmove listing by URL — parses window.__PAGE_MODEL indexed array format; extracts address, price, bedrooms, description, key features, tenure, photo count', status:'done', tag:'backend' },
       { id:'f40', name:'Listing Decoder URL-first UX', desc:'EvaluatePage redesigned: URL input primary, paste text as fallback toggle; auto-decodes after fetch; metadata pill strip (price, beds, days on market, reductions, tenure, EPC)', status:'done', tag:'frontend' },
       { id:'f41', name:'Save to shortlist', desc:'POST /properties — saves decoded property with trust score, flags, metadata to DB; GET/PATCH/DELETE endpoints', status:'done', tag:'backend' },
       { id:'f42', name:'Shortlist page', desc:'My Shortlist page — sort by trust score/price/date; property cards with flag preview, inline notes, CTAs to Neighbourhood and Offer Strategy', status:'done', tag:'frontend' },
       { id:'f43', name:'Feature context CTAs', desc:'Listing Decoder → Neighbourhood (postcode pre-filled) and Offer Strategy (price + type + red flags pre-filled) via URL query params', status:'done', tag:'frontend' },
+      { id:'f44', name:'Neighbourhood agent streaming UI', desc:'Progressive streaming response to address 8–15s latency identified in market research; show tool-call progress while agent runs', status:'pending', tag:'frontend' },
+      { id:'f45', name:'Viewing question generator (R-12)', desc:'Tailored question list per property type and tenure flags; third tab in Evaluate page alongside Listing Decoder and Neighbourhood Briefing', status:'pending', tag:'backend' },
     ]
   },
   {
@@ -645,6 +647,17 @@ const DAILY_LOG = [
     ]
   },
   {
+    date: '2026-06-29',
+    items: [
+      { type: 'setup',   text: 'Market research brief completed — UK PropTech landscape, competitor analysis, gap mapping' },
+      { type: 'setup',   text: 'Jitty identified as closest competitor: launched AI buyer assistant March 2026, well-funded, still search/discovery only — HomeReady must own Stages 3–6 before Jitty expands' },
+      { type: 'setup',   text: 'Legal document analysis confirmed as primary defensible moat: AI conveyancing tools (Moverly, Legalito, Writford) are solicitor-side only; no consumer-facing equivalent exists' },
+      { type: 'setup',   text: 'Government 2026 Home Buying Reform roadmap identified as tailwind (mandates upfront data transparency) and potential feature risk (some HomeReady features may be partially addressed by regulation)' },
+      { type: 'setup',   text: 'Market stats updated: 341K UK FTBs in 2024 (up 19%), £311K avg purchase price, 40%+ of sales fell through in Q2 2025' },
+      { type: 'frontend', text: 'Tracker updated: f44 (neighbourhood streaming UI) and f45 (viewing question generator backend) added to Phase 2; next steps reprioritised from market research' },
+    ]
+  },
+  {
     date: '2026-06-28',
     items: [
       { type: 'frontend', text: 'Mobile-responsive layout — bottom nav bar (4 primary stages), hamburger drawer with full journey progress, sidebar hidden on mobile' },
@@ -664,19 +677,23 @@ const DAILY_LOG = [
 
 const NEXT_STEPS = [
   {
-    label: '🔍 Viewing question generator (f34)',
-    sub: 'Generate tailored questions from the decoded listing — third tab in the Evaluate page alongside Listing Decoder and Neighbourhood Briefing.',
+    label: '⚡ Neighbourhood agent streaming UI (f44)',
+    sub: 'Market research flags 8–15s latency as a known UX risk. Stream tool-call progress to the client so users see live updates while the agent runs rather than a blank wait.',
+  },
+  {
+    label: '🔍 Viewing question generator (f45 + f34)',
+    sub: 'Backend: POST /evaluate/questions from decoded listing. Frontend: third tab in Evaluate page. Market research confirms no competitor generates property-specific viewing questions.',
   },
   {
     label: '📊 Comparable price analysis (f30/f31)',
-    sub: 'Land Registry sold prices integration — surface comparable sales in the Offer Strategy page to give context for the recommended offer.',
+    sub: 'Land Registry sold prices integration — surface comparable sales in the Offer Strategy page. Market research confirms this is partially served; HomeReady can add the plain-English "is this fair?" layer competitors lack.',
   },
   {
     label: '🔑 Stage 5 — Exchange & Completion',
-    sub: 'Backend: POST /exchange/checklist or guided completion timeline. Frontend: ExchangePage with step-by-step completion guide and key milestones.',
+    sub: 'No competitor covers Stages 3–6 post-offer. Backend: POST /exchange/checklist. Frontend: ExchangePage with step-by-step completion guide and key milestones. Priority before Jitty expands beyond search.',
   },
   {
-    label: '🗂 Shortlist comparison view (PM rec #5)',
+    label: '🗂 Shortlist comparison view (f37)',
     sub: 'Side-by-side view of 2–3 saved properties — trust scores, flag counts, price, key metrics. Helps user decide which to pursue.',
   },
   {

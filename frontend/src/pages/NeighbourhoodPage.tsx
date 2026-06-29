@@ -8,8 +8,11 @@ import { getNeighbourhoodBriefing } from '@/lib/api'
 import { useMarkStage } from '@/lib/useMarkStage'
 import type { NeighbourhoodResult } from '@/types'
 import { cn } from '@/lib/utils'
-import { SolidCard, GlassCard, PageHeader, PrimaryButton, FormField, RiskBadge } from '@/components/ui'
-import { Train, Droplets, GraduationCap, MapPin, AlertTriangle, CheckCircle, ThumbsUp, ThumbsDown, Loader2, Sparkles, Info } from 'lucide-react'
+import { SolidCard, PageHeader, PrimaryButton, FormField, RiskBadge, Callout } from '@/components/ui'
+import {
+  Train, Droplets, GraduationCap, MapPin, AlertTriangle, CheckCircle,
+  ThumbsUp, ThumbsDown, Loader2, Sparkles, Info,
+} from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 
 const PRIORITY_OPTIONS = [
@@ -27,29 +30,48 @@ const schema = z.object({
 })
 type FormData = z.infer<typeof schema>
 
+// ── Score ring ────────────────────────────────────────────────────────────────
+
 function ScoreRing({ score, size = 'md' }: { score: number; size?: 'sm' | 'md' }) {
-  const color = score >= 70 ? '#22A05A' : score >= 45 ? '#D97706' : '#DC2626'
-  const dim = size === 'sm' ? 64 : 96
-  const r   = size === 'sm' ? 26 : 38
-  const circ = 2 * Math.PI * r
-  const dash = (score / 100) * circ
+  const color = score >= 70 ? '#16A34A' : score >= 45 ? '#D97706' : '#DC2626'
+  const dim   = size === 'sm' ? 64 : 96
+  const r     = size === 'sm' ? 26 : 38
+  const circ  = 2 * Math.PI * r
+  const dash  = (score / 100) * circ
   return (
     <svg width={dim} height={dim} viewBox={`0 0 ${dim} ${dim}`} className="shrink-0">
-      <circle cx={dim/2} cy={dim/2} r={r} fill="none" stroke="rgba(200,190,220,0.3)" strokeWidth={size==='sm'?6:8} />
-      <circle cx={dim/2} cy={dim/2} r={r} fill="none" stroke={color} strokeWidth={size==='sm'?6:8}
-        strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
-        transform={`rotate(-90 ${dim/2} ${dim/2})`} />
-      <text x={dim/2} y={dim/2+2} textAnchor="middle" fontSize={size==='sm'?13:20} fontWeight="700" fill="#1E1030">{score}</text>
+      <circle cx={dim/2} cy={dim/2} r={r} fill="none" stroke="#E5E7EB" strokeWidth={size === 'sm' ? 6 : 8} />
+      <circle
+        cx={dim/2} cy={dim/2} r={r}
+        fill="none" stroke={color}
+        strokeWidth={size === 'sm' ? 6 : 8}
+        strokeDasharray={`${dash} ${circ}`}
+        strokeLinecap="round"
+        transform={`rotate(-90 ${dim/2} ${dim/2})`}
+        style={{ transition: 'stroke-dasharray 0.7s ease' }}
+      />
+      <text
+        x={dim/2} y={dim/2 + 5}
+        textAnchor="middle"
+        fontSize={size === 'sm' ? 14 : 22}
+        fontWeight="700"
+        fill="#111827"
+        fontFamily="'DM Serif Display', serif"
+      >
+        {score}
+      </text>
     </svg>
   )
 }
 
 function floodLevelToRisk(level: string): 'low' | 'amber' | 'red' | 'critical' {
-  if (level === 'low')       return 'low'
-  if (level === 'medium')    return 'amber'
-  if (level === 'high')      return 'red'
+  if (level === 'low')    return 'low'
+  if (level === 'medium') return 'amber'
+  if (level === 'high')   return 'red'
   return 'critical'
 }
+
+// ── Agent thinking loader ─────────────────────────────────────────────────────
 
 function AgentThinking() {
   const steps = [
@@ -65,31 +87,65 @@ function AgentThinking() {
     return () => clearInterval(iv)
   })
   return (
-    <GlassCard className="text-center space-y-4 py-8">
-      <div className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto" style={{ background: 'rgba(130,100,200,0.12)' }}>
-        <Sparkles className="w-6 h-6 text-purple animate-pulse" />
+    <div className="card p-8 text-center space-y-5">
+      <div className="w-14 h-14 rounded-2xl bg-brand-light flex items-center justify-center mx-auto">
+        <Sparkles className="w-6 h-6 text-brand animate-pulse" />
       </div>
       <div>
-        <p className="font-display text-lg text-plum">Agent working…</p>
-        <p className="text-xs text-plum-soft mt-1">Claude is calling live APIs to build your briefing</p>
+        <p className="font-display text-xl text-ink">Agent working…</p>
+        <p className="text-sm text-ink-muted mt-1">Calling live APIs to build your neighbourhood briefing</p>
       </div>
-      <div className="space-y-2 text-left max-w-xs mx-auto">
+      <div className="space-y-2.5 text-left max-w-xs mx-auto">
         {steps.map((s, i) => (
-          <div key={i} className={cn('flex items-center gap-2 text-xs transition-all duration-500',
-            i < step ? 'text-sage' : i === step ? 'text-purple font-medium' : 'text-plum-soft opacity-40'
-          )}>
+          <div
+            key={i}
+            className={cn(
+              'flex items-center gap-2.5 text-sm transition-all duration-500',
+              i < step  ? 'text-success' :
+              i === step ? 'text-brand font-semibold' :
+              'text-ink-faint'
+            )}
+          >
             {i < step
-              ? <CheckCircle className="w-3.5 h-3.5 shrink-0" />
+              ? <CheckCircle className="w-4 h-4 shrink-0" />
               : i === step
-              ? <Loader2 className="w-3.5 h-3.5 shrink-0 animate-spin" />
-              : <div className="w-3.5 h-3.5 rounded-full border border-dusk-deep shrink-0" />}
+              ? <Loader2 className="w-4 h-4 shrink-0 animate-spin" />
+              : <div className="w-4 h-4 rounded-full border-2 border-border shrink-0" />
+            }
             {s}
           </div>
         ))}
       </div>
-    </GlassCard>
+    </div>
   )
 }
+
+// ── Sub-nav ───────────────────────────────────────────────────────────────────
+
+function SubNav() {
+  return (
+    <div className="flex gap-2 text-sm font-semibold flex-wrap">
+      <NavLink to="/evaluate" end
+        className={({ isActive }) => cn(
+          'px-4 py-2 rounded-xl transition-colors',
+          isActive ? 'bg-brand text-white shadow-sm' : 'bg-surface-2 border border-border text-ink-muted hover:text-ink hover:bg-surface-3'
+        )}
+      >
+        Listing Decoder
+      </NavLink>
+      <NavLink to="/evaluate/neighbourhood"
+        className={({ isActive }) => cn(
+          'px-4 py-2 rounded-xl transition-colors',
+          isActive ? 'bg-brand text-white shadow-sm' : 'bg-surface-2 border border-border text-ink-muted hover:text-ink hover:bg-surface-3'
+        )}
+      >
+        Neighbourhood Briefing
+      </NavLink>
+    </div>
+  )
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function NeighbourhoodPage() {
   const [result, setResult] = useState<NeighbourhoodResult | null>(null)
@@ -118,42 +174,36 @@ export default function NeighbourhoodPage() {
         description="Enter a postcode and HomeReady's AI agent autonomously calls live APIs — transport, flood risk, schools — then synthesises an honest briefing."
       />
 
-      {/* Sub-nav */}
-      <div className="flex gap-2 text-xs font-medium">
-        <NavLink to="/evaluate" end
-          className={({ isActive }) => cn('px-4 py-1.5 rounded-full transition-colors',
-            isActive ? 'btn-primary py-1.5 px-4' : 'btn-ghost py-1.5 px-4'
-          )}
-        >
-          Listing Decoder
-        </NavLink>
-        <NavLink to="/evaluate/neighbourhood"
-          className={({ isActive }) => cn('px-4 py-1.5 rounded-full transition-colors',
-            isActive ? 'btn-primary py-1.5 px-4' : 'btn-ghost py-1.5 px-4'
-          )}
-        >
-          Neighbourhood Briefing
-        </NavLink>
-      </div>
+      {/* Sub-navigation */}
+      <SubNav />
 
+      {/* Input form */}
       <SolidCard>
         <form onSubmit={handleSubmit(d => mutation.mutate({ ...d, buyer_priorities: selected }))} className="space-y-5">
           <FormField label="UK postcode" error={errors.postcode?.message}>
-            <input {...register('postcode')} placeholder="e.g. E2 9DA or SW1A 1AA" className="glass-input uppercase" />
+            <input
+              {...register('postcode')}
+              placeholder="e.g. E2 9DA or SW1A 1AA"
+              className="glass-input uppercase"
+            />
           </FormField>
 
           <div>
-            <label className="block text-sm font-medium text-plum mb-2">
+            <label className="block text-sm font-semibold text-ink mb-2.5">
               What matters most to you?
-              <span className="text-plum-soft font-normal ml-1 text-xs">(optional)</span>
+              <span className="text-ink-faint font-normal ml-1.5 text-xs">optional</span>
             </label>
             <div className="flex flex-wrap gap-2">
               {PRIORITY_OPTIONS.map(opt => (
-                <button key={opt.value} type="button" onClick={() => toggle(opt.value)}
-                  className={cn('text-xs px-3 py-1.5 rounded-full border transition-all',
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => toggle(opt.value)}
+                  className={cn(
+                    'text-sm px-4 py-1.5 rounded-full border font-medium transition-all',
                     selected.includes(opt.value)
-                      ? 'bg-purple text-white border-purple'
-                      : 'bg-white/40 text-plum-soft border-white/60 hover:border-purple/30 hover:text-plum'
+                      ? 'bg-brand text-white border-brand shadow-sm'
+                      : 'bg-white border-border text-ink-muted hover:border-brand/40 hover:text-ink'
                   )}
                 >
                   {opt.label}
@@ -167,73 +217,89 @@ export default function NeighbourhoodPage() {
           </PrimaryButton>
 
           {mutation.isError && (
-            <p className="text-sm text-red-500 flex items-center gap-1.5">
-              <AlertTriangle className="w-4 h-4" />{(mutation.error as any)?.userMessage ?? 'Something went wrong. Please try again.'}
-            </p>
+            <Callout variant="danger">
+              {(mutation.error as any)?.userMessage ?? 'Something went wrong. Please try again.'}
+            </Callout>
           )}
         </form>
       </SolidCard>
 
+      {/* Loading state */}
       {mutation.isPending && <AgentThinking />}
 
+      {/* Results */}
       {result && !mutation.isPending && (
-        <div className="space-y-4 animate-results">
+        <div className="space-y-5 animate-results">
 
-          {/* Hero */}
-          <GlassCard className="flex gap-6 items-center px-6 py-5">
-            <ScoreRing score={result.overall_score} />
+          {/* Hero — area score */}
+          <div className="card p-6 flex flex-col sm:flex-row gap-5 items-start sm:items-center"
+            style={{ background: 'linear-gradient(135deg, #F5F3FF 0%, #EDE9F8 100%)', borderColor: 'rgba(91,61,174,0.15)' }}
+          >
+            <div className="flex flex-col items-center gap-2 shrink-0">
+              <ScoreRing score={result.overall_score} />
+              <span className="text-xs font-semibold text-brand">Overall score</span>
+            </div>
             <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
                 <span className="stage-pill">
                   <span className="stage-pill-dot" />
                   {result.area_name} · {result.postcode}
                 </span>
               </div>
-              <p className="font-display text-xl text-plum leading-snug">{result.headline}</p>
+              <p className="font-display text-xl text-ink leading-snug">{result.headline}</p>
             </div>
-          </GlassCard>
+          </div>
 
           {/* Transport · Flood · Schools */}
           <div className="grid md:grid-cols-3 gap-4">
+            {/* Transport */}
             <SolidCard>
-              <div className="flex items-center gap-2 mb-3">
-                <Train className="w-4 h-4 text-purple" />
-                <h3 className="font-display text-base text-plum">Transport</h3>
+              <div className="flex items-center gap-2.5 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-brand-light flex items-center justify-center">
+                  <Train className="w-4 h-4 text-brand" />
+                </div>
+                <h3 className="font-display text-base text-ink">Transport</h3>
               </div>
-              <div className="flex items-center gap-3 mb-2">
+              <div className="flex items-center gap-3 mb-3">
                 <ScoreRing score={result.transport.score} size="sm" />
-                <p className="text-xs text-plum-soft leading-relaxed">{result.transport.summary}</p>
+                <p className="text-sm text-ink-muted leading-relaxed">{result.transport.summary}</p>
               </div>
               {result.transport.nearest_stations.slice(0, 3).map((s, i) => (
-                <div key={i} className="flex items-center gap-1.5 text-xs text-plum-soft mt-1">
-                  <Train className="w-3 h-3 opacity-50" />{s}
+                <div key={i} className="flex items-center gap-2 text-xs text-ink-muted mt-1.5">
+                  <Train className="w-3 h-3 text-ink-faint shrink-0" />{s}
                 </div>
               ))}
             </SolidCard>
 
+            {/* Flood risk */}
             <SolidCard>
-              <div className="flex items-center gap-2 mb-3">
-                <Droplets className="w-4 h-4 text-purple" />
-                <h3 className="font-display text-base text-plum">Flood Risk</h3>
+              <div className="flex items-center gap-2.5 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-brand-light flex items-center justify-center">
+                  <Droplets className="w-4 h-4 text-brand" />
+                </div>
+                <h3 className="font-display text-base text-ink">Flood Risk</h3>
               </div>
-              <div className="mb-2">
+              <div className="mb-3">
                 <RiskBadge level={floodLevelToRisk(result.flood_risk.risk_level)} label={result.flood_risk.risk_level.replace('_', ' ') + ' risk'} />
               </div>
-              <p className="text-xs text-plum-soft leading-relaxed">{result.flood_risk.summary}</p>
+              <p className="text-sm text-ink-muted leading-relaxed">{result.flood_risk.summary}</p>
             </SolidCard>
 
+            {/* Schools */}
             <SolidCard>
-              <div className="flex items-center gap-2 mb-3">
-                <GraduationCap className="w-4 h-4 text-purple" />
-                <h3 className="font-display text-base text-plum">Schools</h3>
+              <div className="flex items-center gap-2.5 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-brand-light flex items-center justify-center">
+                  <GraduationCap className="w-4 h-4 text-brand" />
+                </div>
+                <h3 className="font-display text-base text-ink">Schools</h3>
               </div>
-              <div className="flex items-center gap-3 mb-2">
+              <div className="flex items-center gap-3 mb-3">
                 <ScoreRing score={result.schools.score} size="sm" />
-                <p className="text-xs text-plum-soft leading-relaxed">{result.schools.summary}</p>
+                <p className="text-sm text-ink-muted leading-relaxed">{result.schools.summary}</p>
               </div>
               {result.schools.notable_schools.slice(0, 2).map((s, i) => (
-                <div key={i} className="flex items-center gap-1.5 text-xs text-sage mt-1">
-                  <CheckCircle className="w-3 h-3" />{s}
+                <div key={i} className="flex items-center gap-2 text-xs text-success mt-1.5">
+                  <CheckCircle className="w-3 h-3 shrink-0" />{s}
                 </div>
               ))}
             </SolidCard>
@@ -241,72 +307,73 @@ export default function NeighbourhoodPage() {
 
           {/* Area character */}
           <SolidCard>
-            <div className="flex items-center gap-2 mb-3">
-              <MapPin className="w-4 h-4 text-purple" />
-              <h3 className="font-display text-base text-plum">Area character</h3>
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-brand-light flex items-center justify-center">
+                <MapPin className="w-4 h-4 text-brand" />
+              </div>
+              <h3 className="font-display text-base text-ink">Area character</h3>
             </div>
-            <p className="text-sm text-plum-soft leading-relaxed mb-3">{result.area_character.vibe}</p>
-            <div className="flex flex-wrap gap-2">
+            <p className="text-base text-ink-muted leading-relaxed mb-4">{result.area_character.vibe}</p>
+            <div className="flex flex-wrap gap-2 mb-3">
               {result.area_character.amenities.map((a, i) => (
-                <span key={i} className="text-xs bg-dusk text-plum-soft px-2.5 py-1 rounded-full">{a}</span>
+                <span key={i} className="badge badge-neutral">{a}</span>
               ))}
             </div>
             {result.area_character.safety_note && (
-              <div className="flex gap-2 mt-3 bg-white/50 rounded-xl p-3">
-                <Info className="w-4 h-4 text-plum-soft shrink-0 mt-0.5" />
-                <p className="text-xs text-plum-soft">{result.area_character.safety_note}</p>
-              </div>
+              <Callout variant="info">
+                {result.area_character.safety_note}
+              </Callout>
             )}
           </SolidCard>
 
           {/* Buyer fit */}
           <div className="grid md:grid-cols-2 gap-4">
-            <SolidCard>
+            <div className="flag-col-green">
               <div className="flex items-center gap-2 mb-3">
-                <ThumbsUp className="w-4 h-4 text-sage" />
-                <h3 className="font-display text-base text-plum">Good for</h3>
+                <ThumbsUp className="w-4 h-4 text-success" />
+                <h3 className="font-display text-base text-ink">Good for</h3>
               </div>
-              <ul className="space-y-2">
+              <div className="space-y-0">
                 {result.buyer_fit.good_for.map((g, i) => (
-                  <li key={i} className="flex gap-2 text-sm text-plum-soft">
-                    <CheckCircle className="w-4 h-4 text-sage mt-0.5 shrink-0" />{g}
-                  </li>
+                  <div key={i} className="flag-item">
+                    <CheckCircle className="w-3.5 h-3.5 text-success mt-0.5 shrink-0" />
+                    <span className="text-ink-muted">{g}</span>
+                  </div>
                 ))}
-              </ul>
-            </SolidCard>
-            <SolidCard>
-              <div className="flex items-center gap-2 mb-3">
-                <ThumbsDown className="w-4 h-4 text-amber" />
-                <h3 className="font-display text-base text-plum">Less suited for</h3>
               </div>
-              <ul className="space-y-2">
+            </div>
+            <div className="flag-col-red">
+              <div className="flex items-center gap-2 mb-3">
+                <ThumbsDown className="w-4 h-4 text-warning" />
+                <h3 className="font-display text-base text-ink">Less suited for</h3>
+              </div>
+              <div className="space-y-0">
                 {result.buyer_fit.less_good_for.map((g, i) => (
-                  <li key={i} className="flex gap-2 text-sm text-plum-soft">
-                    <AlertTriangle className="w-4 h-4 text-amber mt-0.5 shrink-0" />{g}
-                  </li>
+                  <div key={i} className="flag-item">
+                    <AlertTriangle className="w-3.5 h-3.5 text-warning mt-0.5 shrink-0" />
+                    <span className="text-ink-muted">{g}</span>
+                  </div>
                 ))}
-              </ul>
-            </SolidCard>
+              </div>
+            </div>
           </div>
 
           {/* Key risks */}
           {result.key_risks.length > 0 && (
-            <GlassCard>
-              <div className="flex items-center gap-2 mb-3">
-                <AlertTriangle className="w-4 h-4 text-amber" />
-                <h3 className="font-display text-base text-plum">Things to investigate further</h3>
-              </div>
-              <ul className="space-y-2">
+            <Callout variant="warning" title="Things to investigate further">
+              <ul className="space-y-2 mt-1">
                 {result.key_risks.map((r, i) => (
-                  <li key={i} className="flex gap-2 text-sm text-plum-soft">
-                    <AlertTriangle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />{r}
+                  <li key={i} className="flex gap-2">
+                    <AlertTriangle className="w-3.5 h-3.5 text-warning mt-0.5 shrink-0" />
+                    <span>{r}</span>
                   </li>
                 ))}
               </ul>
-            </GlassCard>
+            </Callout>
           )}
 
-          <p className="text-xs text-plum-soft text-center opacity-60">
+          {/* Data sources */}
+          <p className="text-xs text-ink-faint text-center">
             Data sourced from: {result.data_sources.join(' · ')}
           </p>
         </div>

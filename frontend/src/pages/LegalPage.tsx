@@ -8,13 +8,13 @@ import { explainDocument, uploadDocument, uploadSurvey } from '@/lib/api'
 import { useMarkStage } from '@/lib/useMarkStage'
 import type { DocumentExplainerResult, DocumentClause, SurveyInterpreterResult, SurveyFinding } from '@/types'
 import { cn } from '@/lib/utils'
-import { SolidCard, GlassCard, PageHeader, PrimaryButton, FormField, RiskBadge } from '@/components/ui'
+import { SolidCard, PageHeader, PrimaryButton, FormField, RiskBadge, Callout } from '@/components/ui'
 import {
   FileText, Upload, AlertTriangle, CheckCircle, HelpCircle, Info,
   ChevronDown, ChevronUp, Loader2, PoundSterling, Wrench, ClipboardList,
 } from 'lucide-react'
 
-// ── Shared ────────────────────────────────────────────────────────────────────
+// ── PDF Upload Zone ───────────────────────────────────────────────────────────
 
 function PdfUploadZone({ onFile, label }: { onFile: (f: File) => void; label: string }) {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -25,19 +25,19 @@ function PdfUploadZone({ onFile, label }: { onFile: (f: File) => void; label: st
   return (
     <div
       {...getRootProps()}
-      className={cn(
-        'rounded-xl p-8 text-center cursor-pointer transition-colors',
-        isDragActive
-          ? 'bg-purple-faint border-2 border-dashed border-purple'
-          : 'bg-white/30 border-2 border-dashed border-white/60 hover:bg-white/50 hover:border-purple/30'
-      )}
+      className={cn('upload-zone', isDragActive && 'active')}
     >
       <input {...getInputProps()} />
-      <Upload className="w-8 h-8 text-plum-soft mx-auto mb-2" />
-      <p className="text-sm font-medium text-plum">
+      <div className={cn(
+        'w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-3 transition-colors',
+        isDragActive ? 'bg-brand text-white' : 'bg-surface-2 border border-border text-ink-faint'
+      )}>
+        <Upload className="w-5 h-5" />
+      </div>
+      <p className="text-sm font-semibold text-ink">
         {isDragActive ? 'Drop the PDF here' : label}
       </p>
-      <p className="text-xs text-plum-soft mt-1">Text-based PDFs only · max 10MB</p>
+      <p className="text-xs text-ink-muted mt-1">Text-based PDFs only · max 10MB</p>
     </div>
   )
 }
@@ -62,31 +62,36 @@ const DOC_TYPES = [
 
 function ClauseCard({ clause }: { clause: DocumentClause }) {
   const [open, setOpen] = useState(clause.importance !== 'routine')
-  const borderColor = { routine: 'border-l-dusk-deep', notable: 'border-l-amber', critical: 'border-l-red-500' }[clause.importance] ?? 'border-l-dusk-deep'
-  const bgColor    = { routine: 'bg-white/50', notable: 'bg-amber-light/60', critical: 'bg-red-50/60' }[clause.importance] ?? 'bg-white/50'
+
+  const config = {
+    critical: { border: 'border-l-danger', bg: 'bg-danger-bg/40', badge: 'badge-danger' },
+    notable:  { border: 'border-l-warning', bg: 'bg-warning-bg/40', badge: 'badge-warning' },
+    routine:  { border: 'border-l-border', bg: 'bg-surface-2', badge: 'badge-neutral' },
+  }[clause.importance] ?? { border: 'border-l-border', bg: 'bg-surface-2', badge: 'badge-neutral' }
 
   return (
-    <div className={cn('border-l-4 rounded-r-xl p-4 mb-2', borderColor, bgColor)}>
-      <button type="button" className="w-full flex items-center justify-between gap-3 text-left" onClick={() => setOpen(o => !o)}>
+    <div className={cn('border-l-4 rounded-r-xl mb-2 overflow-hidden', config.border, config.bg)}>
+      <button
+        type="button"
+        className="w-full flex items-center justify-between gap-3 text-left px-4 py-3 hover:brightness-95 transition-all"
+        onClick={() => setOpen(o => !o)}
+      >
         <div className="flex items-center gap-2 min-w-0">
-          <span className={cn('text-xs px-2 py-0.5 rounded-full font-medium shrink-0',
-            clause.importance === 'critical' ? 'bg-red-100 text-red-700' :
-            clause.importance === 'notable'  ? 'bg-amber-light text-amber' :
-            'bg-dusk text-plum-soft'
-          )}>
-            {clause.importance}
-          </span>
-          <span className="text-sm font-medium text-plum truncate">{clause.clause}</span>
+          <span className={cn('badge shrink-0', config.badge)}>{clause.importance}</span>
+          <span className="text-sm font-semibold text-ink truncate">{clause.clause}</span>
         </div>
-        {open ? <ChevronUp className="w-4 h-4 text-plum-soft shrink-0" /> : <ChevronDown className="w-4 h-4 text-plum-soft shrink-0" />}
+        {open
+          ? <ChevronUp className="w-4 h-4 text-ink-faint shrink-0" />
+          : <ChevronDown className="w-4 h-4 text-ink-faint shrink-0" />
+        }
       </button>
       {open && (
-        <div className="mt-3 space-y-2">
-          <p className="text-sm text-plum leading-relaxed">{clause.plain_english}</p>
+        <div className="px-4 pb-4 space-y-3">
+          <p className="text-sm text-ink-muted leading-relaxed">{clause.plain_english}</p>
           {clause.action_required && (
-            <div className="flex gap-2 bg-white/60 rounded-lg p-2.5">
-              <CheckCircle className="w-4 h-4 text-purple shrink-0 mt-0.5" />
-              <p className="text-xs font-medium text-plum">{clause.action_required}</p>
+            <div className="flex gap-2.5 bg-white rounded-lg p-3 border border-border">
+              <CheckCircle className="w-4 h-4 text-brand shrink-0 mt-0.5" />
+              <p className="text-sm font-semibold text-ink">{clause.action_required}</p>
             </div>
           )}
         </div>
@@ -96,8 +101,8 @@ function ClauseCard({ clause }: { clause: DocumentClause }) {
 }
 
 function DocumentExplainerTab() {
-  const [result, setResult]     = useState<DocumentExplainerResult | null>(null)
-  const [mode, setMode]         = useState<'paste' | 'upload'>('paste')
+  const [result, setResult]           = useState<DocumentExplainerResult | null>(null)
+  const [mode, setMode]               = useState<'paste' | 'upload'>('paste')
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [uploading, setUploading]     = useState(false)
   const markStage = useMarkStage()
@@ -133,19 +138,25 @@ function DocumentExplainerTab() {
   return (
     <div className="space-y-5">
       {/* Mode toggle */}
-      <div className="flex gap-2 text-xs font-medium">
+      <div className="flex gap-2">
         {(['paste', 'upload'] as const).map(m => (
-          <button key={m} type="button" onClick={() => setMode(m)}
-            className={cn('px-4 py-1.5 rounded-full transition-colors',
-              mode === m ? 'btn-primary py-1.5 px-4' : 'btn-ghost py-1.5 px-4'
+          <button
+            key={m}
+            type="button"
+            onClick={() => setMode(m)}
+            className={cn(
+              'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors',
+              mode === m
+                ? 'bg-brand text-white shadow-sm'
+                : 'bg-surface-2 border border-border text-ink-muted hover:text-ink'
             )}
           >
-            {m === 'paste' ? 'Paste text' : 'Upload PDF'}
+            {m === 'paste' ? <><FileText className="w-3.5 h-3.5" /> Paste text</> : <><Upload className="w-3.5 h-3.5" /> Upload PDF</>}
           </button>
         ))}
       </div>
 
-      <SolidCard className="space-y-4">
+      <SolidCard className="space-y-5">
         <FormField label="Document type">
           <select {...register('document_type')} className="glass-input">
             {DOC_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
@@ -155,7 +166,9 @@ function DocumentExplainerTab() {
         {mode === 'paste' ? (
           <form onSubmit={handleSubmit(d => mutation.mutate(d))} className="space-y-4">
             <FormField label="Paste document text" error={errors.document_text?.message}>
-              <textarea {...register('document_text')} rows={10}
+              <textarea
+                {...register('document_text')}
+                rows={10}
                 placeholder="Paste the full text of your document here…"
                 className="glass-input resize-none"
               />
@@ -164,85 +177,88 @@ function DocumentExplainerTab() {
               {mutation.isPending ? 'Analysing…' : 'Explain document'}
             </PrimaryButton>
             {mutation.isError && (
-              <p className="text-sm text-red-500 flex items-center gap-1.5">
-                <AlertTriangle className="w-4 h-4" />
+              <Callout variant="danger">
                 {(mutation.error as any)?.userMessage ?? 'Something went wrong. Please try again.'}
-              </p>
+              </Callout>
             )}
           </form>
         ) : (
           <div className="space-y-3">
-            {uploading
-              ? (
-                <div className="rounded-xl p-8 text-center bg-purple-faint border-2 border-dashed border-purple">
-                  <Loader2 className="w-8 h-8 text-purple animate-spin mx-auto mb-2" />
-                  <p className="text-sm font-medium text-plum">Uploading & analysing…</p>
-                </div>
-              )
-              : <PdfUploadZone onFile={handleUpload} label="Drop your document PDF here, or click to browse" />
-            }
-            {uploadError && (
-              <p className="text-sm text-red-500 flex items-center gap-1.5">
-                <AlertTriangle className="w-4 h-4" />{uploadError}
-              </p>
+            {uploading ? (
+              <div className="upload-zone active">
+                <Loader2 className="w-10 h-10 text-brand animate-spin mx-auto mb-3" />
+                <p className="text-sm font-semibold text-ink">Uploading & analysing…</p>
+                <p className="text-xs text-ink-muted mt-1">This may take a moment</p>
+              </div>
+            ) : (
+              <PdfUploadZone onFile={handleUpload} label="Drop your document PDF here, or click to browse" />
             )}
+            {uploadError && <Callout variant="danger">{uploadError}</Callout>}
           </div>
         )}
       </SolidCard>
 
       {result && (
-        <div className="space-y-4 animate-results">
+        <div className="space-y-5 animate-results">
+          {/* Summary */}
           <SolidCard>
-            <div className="flex items-center gap-2 mb-3">
-              <FileText className="w-4 h-4 text-purple" />
-              <h2 className="font-display text-lg text-plum">Document summary</h2>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-brand-light flex items-center justify-center">
+                <FileText className="w-4 h-4 text-brand" />
+              </div>
+              <h2 className="font-display text-lg text-ink">Document summary</h2>
             </div>
-            <p className="text-sm text-plum-soft leading-relaxed">{result.summary}</p>
+            <p className="text-base text-ink-muted leading-relaxed">{result.summary}</p>
             <div className="flex flex-wrap gap-2 mt-4">
               {criticalClauses.length > 0 && <RiskBadge level="critical" label={`${criticalClauses.length} critical`} />}
               {notableClauses.length  > 0 && <RiskBadge level="amber"    label={`${notableClauses.length} notable`} />}
-              {routineClauses.length  > 0 && (
-                <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-dusk text-plum-soft">
-                  <span className="w-1.5 h-1.5 rounded-full bg-plum-soft" />
-                  {routineClauses.length} routine
-                </span>
-              )}
+              {routineClauses.length  > 0 && <span className="badge badge-neutral">{routineClauses.length} routine</span>}
             </div>
           </SolidCard>
 
+          {/* Clause breakdown */}
           <SolidCard>
-            <h3 className="font-display text-lg text-plum mb-4">Clause breakdown</h3>
+            <h3 className="font-display text-lg text-ink mb-4">Clause breakdown</h3>
             {[...criticalClauses, ...notableClauses, ...routineClauses].map((c, i) => (
               <ClauseCard key={i} clause={c} />
             ))}
           </SolidCard>
 
+          {/* Action items */}
           {result.action_items.length > 0 && (
-            <GlassCard className="space-y-3">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-purple" />
-                <h3 className="font-display text-lg text-plum">Your action items</h3>
+            <div className="card-tinted p-5 rounded-2xl border border-brand/15">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-brand-light flex items-center justify-center">
+                  <CheckCircle className="w-4 h-4 text-brand" />
+                </div>
+                <h3 className="font-display text-lg text-ink">Your action items</h3>
               </div>
-              <ol className="space-y-2">
+              <ol className="space-y-3">
                 {result.action_items.map((item, i) => (
-                  <li key={i} className="flex gap-2 text-sm text-plum">
-                    <span className="font-medium text-purple shrink-0">{i + 1}.</span>{item}
+                  <li key={i} className="flex gap-3 text-sm text-ink-muted">
+                    <span className="w-5 h-5 rounded-full bg-brand text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
+                      {i + 1}
+                    </span>
+                    <span className="leading-relaxed">{item}</span>
                   </li>
                 ))}
               </ol>
-            </GlassCard>
+            </div>
           )}
 
+          {/* Solicitor questions */}
           {result.questions_for_solicitor.length > 0 && (
             <SolidCard>
-              <div className="flex items-center gap-2 mb-3">
-                <HelpCircle className="w-4 h-4 text-purple" />
-                <h3 className="font-display text-lg text-plum">Questions for your solicitor</h3>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-warning/10 flex items-center justify-center">
+                  <HelpCircle className="w-4 h-4 text-warning" />
+                </div>
+                <h3 className="font-display text-lg text-ink">Questions for your solicitor</h3>
               </div>
-              <ul className="space-y-2">
+              <ul className="space-y-2.5">
                 {result.questions_for_solicitor.map((q, i) => (
-                  <li key={i} className="flex gap-2 text-sm text-plum-soft">
-                    <Info className="w-4 h-4 text-amber shrink-0 mt-0.5" />{q}
+                  <li key={i} className="flex gap-2.5 text-sm text-ink-muted py-2 border-b border-border last:border-0">
+                    <Info className="w-4 h-4 text-warning shrink-0 mt-0.5" />{q}
                   </li>
                 ))}
               </ul>
@@ -257,57 +273,64 @@ function DocumentExplainerTab() {
 // ── Survey Interpreter ────────────────────────────────────────────────────────
 
 const SURVEY_LEVELS = [
-  { value: 'level_1', label: 'Level 1 — Condition Report', hint: 'Basic condition check, typically for new builds' },
-  { value: 'level_2', label: 'Level 2 — Homebuyer Report', hint: 'Most common survey for standard properties' },
-  { value: 'level_3', label: 'Level 3 — Building Survey', hint: 'Full structural survey for older or complex properties' },
+  { value: 'level_1', label: 'Level 1 — Condition Report',  hint: 'Basic condition check, typically for new builds' },
+  { value: 'level_2', label: 'Level 2 — Homebuyer Report',  hint: 'Most common survey for standard properties' },
+  { value: 'level_3', label: 'Level 3 — Building Survey',   hint: 'Full structural survey for older or complex properties' },
 ]
 
-const VERDICT_META: Record<string, { label: string; color: string; bg: string; border: string; icon: React.ReactNode }> = {
-  proceed:     { label: 'Proceed',               color: 'text-sage',     bg: 'bg-sage-light',    border: 'border-sage/30',    icon: <CheckCircle className="w-5 h-5 text-sage" /> },
-  renegotiate: { label: 'Renegotiate price',      color: 'text-amber',    bg: 'bg-amber-light',   border: 'border-amber/40',   icon: <PoundSterling className="w-5 h-5 text-amber" /> },
-  investigate: { label: 'Investigate further',    color: 'text-purple',   bg: 'bg-purple-faint',  border: 'border-purple/30',  icon: <HelpCircle className="w-5 h-5 text-purple" /> },
-  withdraw:    { label: 'Consider withdrawing',   color: 'text-red-600',  bg: 'bg-red-50',        border: 'border-red-200',    icon: <AlertTriangle className="w-5 h-5 text-red-500" /> },
+const VERDICT_META: Record<string, {
+  label: string; colorClass: string; bgClass: string; borderClass: string; icon: React.ReactNode
+}> = {
+  proceed:     { label: 'Proceed',             colorClass: 'text-success', bgClass: 'bg-success-bg', borderClass: 'border-success/30', icon: <CheckCircle className="w-5 h-5 text-success" /> },
+  renegotiate: { label: 'Renegotiate price',   colorClass: 'text-warning', bgClass: 'bg-warning-bg', borderClass: 'border-warning/30', icon: <PoundSterling className="w-5 h-5 text-warning" /> },
+  investigate: { label: 'Investigate further', colorClass: 'text-brand',   bgClass: 'bg-brand-light', borderClass: 'border-brand/20', icon: <HelpCircle className="w-5 h-5 text-brand" /> },
+  withdraw:    { label: 'Consider withdrawing', colorClass: 'text-danger', bgClass: 'bg-danger-bg',  borderClass: 'border-danger/30', icon: <AlertTriangle className="w-5 h-5 text-danger" /> },
 }
 
 function FindingCard({ finding }: { finding: SurveyFinding }) {
   const [open, setOpen] = useState(finding.category !== 'advisory')
-  const borderColor = { critical: 'border-l-red-500', significant: 'border-l-amber', advisory: 'border-l-dusk-deep' }[finding.category]
-  const bgColor     = { critical: 'bg-red-50/60', significant: 'bg-amber-light/60', advisory: 'bg-white/50' }[finding.category]
+
+  const config = {
+    critical:    { border: 'border-l-danger',  bg: 'bg-danger-bg/40',  badge: 'badge-danger' },
+    significant: { border: 'border-l-warning', bg: 'bg-warning-bg/40', badge: 'badge-warning' },
+    advisory:    { border: 'border-l-border',  bg: 'bg-surface-2',     badge: 'badge-neutral' },
+  }[finding.category] ?? { border: 'border-l-border', bg: 'bg-surface-2', badge: 'badge-neutral' }
 
   return (
-    <div className={cn('border-l-4 rounded-r-xl p-4 mb-2', borderColor, bgColor)}>
-      <button type="button" className="w-full flex items-center justify-between gap-3 text-left" onClick={() => setOpen(o => !o)}>
+    <div className={cn('border-l-4 rounded-r-xl mb-2 overflow-hidden', config.border, config.bg)}>
+      <button
+        type="button"
+        className="w-full flex items-center justify-between gap-3 text-left px-4 py-3 hover:brightness-95 transition-all"
+        onClick={() => setOpen(o => !o)}
+      >
         <div className="flex items-center gap-2 min-w-0">
-          <span className={cn('text-xs px-2 py-0.5 rounded-full font-medium shrink-0',
-            finding.category === 'critical'    ? 'bg-red-100 text-red-700' :
-            finding.category === 'significant' ? 'bg-amber-light text-amber' :
-            'bg-dusk text-plum-soft'
-          )}>
-            {finding.category}
-          </span>
-          <span className="text-sm font-medium text-plum truncate">{finding.title}</span>
+          <span className={cn('badge shrink-0', config.badge)}>{finding.category}</span>
+          <span className="text-sm font-semibold text-ink truncate">{finding.title}</span>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {finding.renegotiation_worthy && (
-            <span className="hidden sm:inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-purple-faint text-purple font-medium">
+            <span className="hidden sm:inline-flex badge badge-brand gap-1">
               <PoundSterling className="w-2.5 h-2.5" /> renegotiate
             </span>
           )}
-          {open ? <ChevronUp className="w-4 h-4 text-plum-soft" /> : <ChevronDown className="w-4 h-4 text-plum-soft" />}
+          {open
+            ? <ChevronUp className="w-4 h-4 text-ink-faint" />
+            : <ChevronDown className="w-4 h-4 text-ink-faint" />
+          }
         </div>
       </button>
       {open && (
-        <div className="mt-3 space-y-2.5">
-          <p className="text-sm text-plum leading-relaxed">{finding.description}</p>
+        <div className="px-4 pb-4 space-y-3">
+          <p className="text-sm text-ink-muted leading-relaxed">{finding.description}</p>
           {finding.typical_cost_range && (
-            <div className="flex gap-2 items-center text-xs text-plum-soft bg-white/60 rounded-lg px-3 py-2">
-              <Wrench className="w-3.5 h-3.5 shrink-0 text-plum-soft/60" />
-              <span>Typical repair cost: <span className="font-medium text-plum">{finding.typical_cost_range}</span></span>
+            <div className="flex gap-2.5 items-center text-sm text-ink-muted bg-white rounded-lg px-3 py-2.5 border border-border">
+              <Wrench className="w-3.5 h-3.5 shrink-0 text-ink-faint" />
+              <span>Typical repair cost: <span className="font-semibold text-ink">{finding.typical_cost_range}</span></span>
             </div>
           )}
-          <div className="flex gap-2 bg-white/60 rounded-lg p-2.5">
-            <ClipboardList className="w-4 h-4 text-purple shrink-0 mt-0.5" />
-            <p className="text-xs font-medium text-plum">{finding.action}</p>
+          <div className="flex gap-2.5 bg-white rounded-lg p-3 border border-border">
+            <ClipboardList className="w-4 h-4 text-brand shrink-0 mt-0.5" />
+            <p className="text-sm font-semibold text-ink">{finding.action}</p>
           </div>
         </div>
       )}
@@ -316,10 +339,10 @@ function FindingCard({ finding }: { finding: SurveyFinding }) {
 }
 
 function SurveyInterpreterTab() {
-  const [result, setResult]   = useState<SurveyInterpreterResult | null>(null)
-  const [level, setLevel]     = useState('level_2')
+  const [result, setResult]       = useState<SurveyInterpreterResult | null>(null)
+  const [level, setLevel]         = useState('level_2')
   const [uploading, setUploading] = useState(false)
-  const [error, setError]     = useState<string | null>(null)
+  const [error, setError]         = useState<string | null>(null)
   const markStage = useMarkStage()
 
   const handleFile = useCallback(async (file: File) => {
@@ -338,96 +361,87 @@ function SurveyInterpreterTab() {
   const critical    = result?.findings.filter(f => f.category === 'critical')    ?? []
   const significant = result?.findings.filter(f => f.category === 'significant') ?? []
   const advisory    = result?.findings.filter(f => f.category === 'advisory')    ?? []
-
-  const verdict = result ? (VERDICT_META[result.overall_assessment] ?? VERDICT_META.investigate) : null
+  const verdict     = result ? (VERDICT_META[result.overall_assessment] ?? VERDICT_META.investigate) : null
 
   return (
     <div className="space-y-5">
       <SolidCard className="space-y-5">
-        {/* Survey level */}
+        {/* Survey level selector */}
         <div>
-          <label className="block text-sm font-medium text-plum mb-2">Survey level</label>
+          <label className="block text-sm font-semibold text-ink mb-3">Survey level</label>
           <div className="space-y-2">
             {SURVEY_LEVELS.map(l => (
-              <label key={l.value}
+              <label
+                key={l.value}
                 className={cn(
-                  'flex items-start gap-3 p-3 rounded-xl cursor-pointer border transition-colors',
+                  'flex items-start gap-3 p-3.5 rounded-xl cursor-pointer border transition-all',
                   level === l.value
-                    ? 'bg-purple-faint border-purple/30'
-                    : 'bg-white/30 border-white/50 hover:bg-white/50'
+                    ? 'bg-brand-light border-brand/30 shadow-sm'
+                    : 'bg-white border-border hover:border-brand/20 hover:bg-surface-2'
                 )}
               >
                 <input
-                  type="radio" name="survey_level" value={l.value}
+                  type="radio"
+                  name="survey_level"
+                  value={l.value}
                   checked={level === l.value}
                   onChange={() => setLevel(l.value)}
-                  className="mt-0.5 accent-purple"
+                  className="mt-0.5 accent-brand"
                 />
                 <div>
-                  <p className="text-sm font-medium text-plum">{l.label}</p>
-                  <p className="text-xs text-plum-soft mt-0.5">{l.hint}</p>
+                  <p className="text-sm font-semibold text-ink">{l.label}</p>
+                  <p className="text-xs text-ink-muted mt-0.5">{l.hint}</p>
                 </div>
               </label>
             ))}
           </div>
         </div>
 
-        {/* Drop zone */}
-        {uploading
-          ? (
-            <div className="rounded-xl p-8 text-center bg-purple-faint border-2 border-dashed border-purple">
-              <Loader2 className="w-8 h-8 text-purple animate-spin mx-auto mb-2" />
-              <p className="text-sm font-medium text-plum">Reading your survey…</p>
-              <p className="text-xs text-plum-soft mt-1">This may take a moment</p>
-            </div>
-          )
-          : <PdfUploadZone onFile={handleFile} label="Drop your survey PDF here, or click to browse" />
-        }
-
-        {error && (
-          <p className="text-sm text-red-500 flex items-center gap-1.5">
-            <AlertTriangle className="w-4 h-4" />{error}
-          </p>
+        {/* Upload zone */}
+        {uploading ? (
+          <div className="upload-zone active">
+            <Loader2 className="w-10 h-10 text-brand animate-spin mx-auto mb-3" />
+            <p className="text-sm font-semibold text-ink">Reading your survey…</p>
+            <p className="text-xs text-ink-muted mt-1">This may take a moment</p>
+          </div>
+        ) : (
+          <PdfUploadZone onFile={handleFile} label="Drop your survey PDF here, or click to browse" />
         )}
+
+        {error && <Callout variant="danger">{error}</Callout>}
       </SolidCard>
 
       {result && verdict && (
-        <div className="space-y-4 animate-results">
-
+        <div className="space-y-5 animate-results">
           {/* Verdict hero */}
-          <GlassCard className={cn('border', verdict.border)}>
+          <div className={cn('card p-5 border', verdict.borderClass)}>
             <div className="flex items-start gap-4">
-              <div className={cn('p-2.5 rounded-xl shrink-0', verdict.bg)}>
+              <div className={cn('p-3 rounded-xl shrink-0', verdict.bgClass)}>
                 {verdict.icon}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex flex-wrap items-center gap-2 mb-1">
-                  <span className={cn('font-display text-xl', verdict.color)}>{verdict.label}</span>
+                <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                  <span className={cn('font-display text-xl', verdict.colorClass)}>{verdict.label}</span>
                   {result.estimated_remediation_cost && (
-                    <span className="text-xs px-2.5 py-1 rounded-full bg-white/60 text-plum-soft font-medium">
+                    <span className="badge badge-neutral">
                       Est. repairs: {result.estimated_remediation_cost}
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-plum-soft leading-relaxed">{result.summary}</p>
+                <p className="text-sm text-ink-muted leading-relaxed">{result.summary}</p>
                 <div className="flex flex-wrap gap-2 mt-3">
                   {result.critical_count    > 0 && <RiskBadge level="critical" label={`${result.critical_count} critical`} />}
                   {result.significant_count > 0 && <RiskBadge level="amber"    label={`${result.significant_count} significant`} />}
-                  {result.advisory_count    > 0 && (
-                    <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-dusk text-plum-soft">
-                      <span className="w-1.5 h-1.5 rounded-full bg-plum-soft" />
-                      {result.advisory_count} advisory
-                    </span>
-                  )}
+                  {result.advisory_count    > 0 && <span className="badge badge-neutral">{result.advisory_count} advisory</span>}
                 </div>
               </div>
             </div>
-          </GlassCard>
+          </div>
 
           {/* Findings */}
           {(critical.length + significant.length + advisory.length) > 0 && (
             <SolidCard>
-              <h3 className="font-display text-lg text-plum mb-4">Survey findings</h3>
+              <h3 className="font-display text-lg text-ink mb-4">Survey findings</h3>
               {[...critical, ...significant, ...advisory].map((f, i) => (
                 <FindingCard key={i} finding={f} />
               ))}
@@ -436,20 +450,27 @@ function SurveyInterpreterTab() {
 
           {/* Renegotiation points */}
           {result.renegotiation_points.length > 0 && (
-            <GlassCard>
-              <div className="flex items-center gap-2 mb-3">
-                <PoundSterling className="w-4 h-4 text-purple" />
-                <h3 className="font-display text-lg text-plum">Renegotiation points</h3>
+            <div className="card-tinted p-5 rounded-2xl border border-brand/15">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-brand-light flex items-center justify-center">
+                  <PoundSterling className="w-4 h-4 text-brand" />
+                </div>
+                <div>
+                  <h3 className="font-display text-lg text-ink">Renegotiation points</h3>
+                  <p className="text-xs text-ink-muted">Use these to negotiate a price reduction</p>
+                </div>
               </div>
-              <p className="text-xs text-plum-soft mb-3">Use these findings to negotiate a price reduction with the seller.</p>
-              <ol className="space-y-2">
+              <ol className="space-y-3">
                 {result.renegotiation_points.map((pt, i) => (
-                  <li key={i} className="flex gap-2 text-sm text-plum">
-                    <span className="font-medium text-purple shrink-0">{i + 1}.</span>{pt}
+                  <li key={i} className="flex gap-3 text-sm text-ink-muted">
+                    <span className="w-5 h-5 rounded-full bg-brand text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
+                      {i + 1}
+                    </span>
+                    <span className="leading-relaxed">{pt}</span>
                   </li>
                 ))}
               </ol>
-            </GlassCard>
+            </div>
           )}
         </div>
       )}
@@ -482,11 +503,17 @@ export default function LegalPage() {
       />
 
       {/* Tab bar */}
-      <div className="flex gap-2 text-xs font-medium">
+      <div className="flex gap-2">
         {TABS.map(t => (
-          <button key={t.key} type="button" onClick={() => setTab(t.key)}
-            className={cn('px-4 py-1.5 rounded-full transition-colors',
-              tab === t.key ? 'btn-primary py-1.5 px-4' : 'btn-ghost py-1.5 px-4'
+          <button
+            key={t.key}
+            type="button"
+            onClick={() => setTab(t.key)}
+            className={cn(
+              'px-5 py-2 rounded-xl text-sm font-semibold transition-colors',
+              tab === t.key
+                ? 'bg-brand text-white shadow-sm'
+                : 'bg-surface-2 border border-border text-ink-muted hover:text-ink hover:bg-surface-3'
             )}
           >
             {t.label}
@@ -494,10 +521,7 @@ export default function LegalPage() {
         ))}
       </div>
 
-      {tab === 'document'
-        ? <DocumentExplainerTab />
-        : <SurveyInterpreterTab />
-      }
+      {tab === 'document' ? <DocumentExplainerTab /> : <SurveyInterpreterTab />}
     </div>
   )
 }
