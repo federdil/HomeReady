@@ -1,10 +1,9 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { useMutation } from '@tanstack/react-query'
-import { getNeighbourhoodBriefing } from '@/lib/api'
+import { streamNeighbourhoodBriefing } from '@/lib/api'
 import { useMarkStage } from '@/lib/useMarkStage'
 import type { NeighbourhoodResult } from '@/types'
 import { cn } from '@/lib/utils'
@@ -71,21 +70,31 @@ function floodLevelToRisk(level: string): 'low' | 'amber' | 'red' | 'critical' {
   return 'critical'
 }
 
+// ── Tool label map ────────────────────────────────────────────────────────────
+
+const TOOL_LABELS: Record<string, string> = {
+  get_transport_data:   'Calling TfL transport API…',
+  get_flood_risk:       'Checking Environment Agency flood data…',
+  get_schools_data:     'Looking up Ofsted school ratings…',
+  search_neighbourhood: 'Searching neighbourhood information…',
+}
+
+type ToolStep = { tool: string; done: boolean }
+
 // ── Agent thinking loader ─────────────────────────────────────────────────────
 
-function AgentThinking() {
-  const steps = [
-    'Calling TfL transport API…',
-    'Checking Environment Agency flood data…',
-    'Looking up Ofsted school ratings…',
-    'Searching neighbourhood information…',
-    'Synthesising briefing…',
+function AgentThinking({ steps }: { steps: ToolStep[] }) {
+  const allKnown = Object.keys(TOOL_LABELS)
+  // Show known tools in order, plus any unexpected ones at the end
+  const ordered = [
+    ...allKnown.filter(t => steps.some(s => s.tool === t)),
+    ...steps.filter(s => !allKnown.includes(s.tool)).map(s => s.tool),
   ]
-  const [step, setStep] = useState(0)
-  useState(() => {
-    const iv = setInterval(() => setStep(s => Math.min(s + 1, steps.length - 1)), 2200)
-    return () => clearInterval(iv)
+  const activeIdx = ordered.findIndex(t => {
+    const s = steps.find(x => x.tool === t)
+    return s && !s.done
   })
+
   return (
     <div className="card p-8 text-center space-y-5">
       <div className="w-14 h-14 rounded-2xl bg-brand-light flex items-center justify-center mx-auto">
@@ -96,25 +105,45 @@ function AgentThinking() {
         <p className="text-sm text-ink-muted mt-1">Calling live APIs to build your neighbourhood briefing</p>
       </div>
       <div className="space-y-2.5 text-left max-w-xs mx-auto">
-        {steps.map((s, i) => (
-          <div
-            key={i}
-            className={cn(
-              'flex items-center gap-2.5 text-sm transition-all duration-500',
-              i < step  ? 'text-success' :
-              i === step ? 'text-brand font-semibold' :
-              'text-ink-faint'
-            )}
-          >
-            {i < step
-              ? <CheckCircle className="w-4 h-4 shrink-0" />
-              : i === step
-              ? <Loader2 className="w-4 h-4 shrink-0 animate-spin" />
-              : <div className="w-4 h-4 rounded-full border-2 border-border shrink-0" />
-            }
-            {s}
+        {ordered.length === 0 ? (
+          // Nothing arrived yet — show a single spinner
+          <div className="flex items-center gap-2.5 text-sm text-brand font-semibold">
+            <Loader2 className="w-4 h-4 shrink-0 animate-spin" />
+            Starting agent…
           </div>
-        ))}
+        ) : (
+          ordered.map((tool, i) => {
+            const step = steps.find(s => s.tool === tool)
+            const done = step?.done ?? false
+            const active = i === activeIdx
+            return (
+              <div
+                key={tool}
+                className={cn(
+                  'flex items-center gap-2.5 text-sm transition-all duration-500',
+                  done    ? 'text-success' :
+                  active  ? 'text-brand font-semibold' :
+                  'text-ink-faint'
+                )}
+              >
+                {done
+                  ? <CheckCircle className="w-4 h-4 shrink-0" />
+                  : active
+                  ? <Loader2 className="w-4 h-4 shrink-0 animate-spin" />
+                  : <div className="w-4 h-4 rounded-full border-2 border-border shrink-0" />
+                }
+                {TOOL_LABELS[tool] ?? tool}
+              </div>
+            )
+          })
+        )}
+        {/* Synthesising step — shows after all tools done */}
+        {ordered.length > 0 && steps.every(s => s.done) && (
+          <div className="flex items-center gap-2.5 text-sm text-brand font-semibold">
+            <Loader2 className="w-4 h-4 shrink-0 animate-spin" />
+            Synthesising briefing…
+          </div>
+        )}
       </div>
     </div>
   )
@@ -150,6 +179,9 @@ function SubNav() {
 export default function NeighbourhoodPage() {
   const [result, setResult] = useState<NeighbourhoodResult | null>(null)
   const [selected, setSelected] = useState<string[]>([])
+  const [isPending, setIsPending] = useState(false)
+  const [streamError, setStreamError] = useState<string | null>(null)
+  const [toolSteps, setToolSteps] = useState<ToolStep[]>([])
   const markStage = useMarkStage()
   const [searchParams] = useSearchParams()
   const prefillPostcode = searchParams.get('postcode') ?? ''
@@ -159,12 +191,36 @@ export default function NeighbourhoodPage() {
     defaultValues: { postcode: prefillPostcode },
   })
 
-  const mutation = useMutation({
-    mutationFn: getNeighbourhoodBriefing,
-    onSuccess: (data) => { setResult(data); markStage('evaluation', 'complete') },
-  })
-
   const toggle = (v: string) => setSelected(p => p.includes(v) ? p.filter(x => x !== v) : [...p, v])
+
+  const onSubmit = useCallback(async (formData: FormData) => {
+    setIsPending(true)
+    setStreamError(null)
+    setResult(null)
+    setToolSteps([])
+
+    try {
+      await streamNeighbourhoodBriefing(
+        { ...formData, buyer_priorities: selected },
+        (evt) => {
+          if (evt.event === 'tool_start') {
+            setToolSteps(prev => [...prev, { tool: evt.tool, done: false }])
+          } else if (evt.event === 'tool_done') {
+            setToolSteps(prev => prev.map(s => s.tool === evt.tool ? { ...s, done: true } : s))
+          } else if (evt.event === 'complete') {
+            setResult(evt.data)
+            markStage('evaluation', 'complete')
+          } else if (evt.event === 'error') {
+            setStreamError(evt.message)
+          }
+        }
+      )
+    } catch (e: any) {
+      setStreamError(e?.message ?? 'Something went wrong. Please try again.')
+    } finally {
+      setIsPending(false)
+    }
+  }, [selected, markStage])
 
   return (
     <div className="space-y-6">
@@ -179,7 +235,7 @@ export default function NeighbourhoodPage() {
 
       {/* Input form */}
       <SolidCard>
-        <form onSubmit={handleSubmit(d => mutation.mutate({ ...d, buyer_priorities: selected }))} className="space-y-5">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           <FormField label="UK postcode" error={errors.postcode?.message}>
             <input
               {...register('postcode')}
@@ -212,23 +268,21 @@ export default function NeighbourhoodPage() {
             </div>
           </div>
 
-          <PrimaryButton type="submit" loading={mutation.isPending}>
-            {mutation.isPending ? 'Agent running…' : 'Build neighbourhood briefing'}
+          <PrimaryButton type="submit" loading={isPending}>
+            {isPending ? 'Agent running…' : 'Build neighbourhood briefing'}
           </PrimaryButton>
 
-          {mutation.isError && (
-            <Callout variant="danger">
-              {(mutation.error as any)?.userMessage ?? 'Something went wrong. Please try again.'}
-            </Callout>
+          {streamError && (
+            <Callout variant="danger">{streamError}</Callout>
           )}
         </form>
       </SolidCard>
 
-      {/* Loading state */}
-      {mutation.isPending && <AgentThinking />}
+      {/* Loading state — real tool steps */}
+      {isPending && <AgentThinking steps={toolSteps} />}
 
       {/* Results */}
-      {result && !mutation.isPending && (
+      {result && !isPending && (
         <div className="space-y-5 animate-results">
 
           {/* Hero — area score */}

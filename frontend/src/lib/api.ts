@@ -137,6 +137,51 @@ export const getNeighbourhoodBriefing = (
 ): Promise<NeighbourhoodResult> =>
   api.post('/api/v1/evaluate/neighbourhood', data).then(r => r.data)
 
+export type NeighbourhoodStreamEvent =
+  | { event: 'tool_start'; tool: string }
+  | { event: 'tool_done'; tool: string }
+  | { event: 'complete'; data: NeighbourhoodResult }
+  | { event: 'error'; message: string }
+
+export async function streamNeighbourhoodBriefing(
+  data: NeighbourhoodInput,
+  onEvent: (e: NeighbourhoodStreamEvent) => void,
+): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession()
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`
+
+  const baseURL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+  const response = await fetch(`${baseURL}/api/v1/evaluate/neighbourhood/stream`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(data),
+  })
+
+  if (!response.ok) throw new Error(`Request failed: ${response.status}`)
+  if (!response.body) throw new Error('No response body')
+
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true })
+    const lines = buffer.split('\n')
+    buffer = lines.pop() ?? ''
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        try {
+          const evt = JSON.parse(line.slice(6)) as NeighbourhoodStreamEvent
+          onEvent(evt)
+        } catch { /* skip malformed */ }
+      }
+    }
+  }
+}
+
 // ── Checklist ───────────────────────────────────────────────────────────────
 export interface ChecklistResponse {
   items: ChecklistItem[]

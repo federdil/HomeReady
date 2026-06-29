@@ -154,3 +154,75 @@ async def ask_claude_with_tools(
         messages.append({"role": "user", "content": tool_results})
 
     raise ClaudeError("The AI agent took too many steps. Please try again.", 504)
+
+
+from typing import AsyncGenerator
+
+async def ask_claude_with_tools_streaming(
+    prompt: str,
+    tools: list[dict],
+    tool_handlers: dict[str, Callable[..., Any]],
+    system: str = "",
+    max_tokens: int = MAX_TOKENS,
+    max_iterations: int = 8,
+) -> AsyncGenerator[dict, None]:
+    """Like ask_claude_with_tools but yields progress dicts as tool calls happen."""
+    messages = [{"role": "user", "content": prompt}]
+
+    for iteration in range(max_iterations):
+        log.info("agent_iteration_stream", iteration=iteration)
+
+        async def _call():
+            return await client.messages.create(
+                model=MODEL,
+                max_tokens=max_tokens,
+                system=system,
+                tools=tools,
+                messages=messages,
+            )
+
+        response = await _call_with_retry(_call)
+
+        if response.stop_reason == "end_turn":
+            text_blocks = [b for b in response.content if b.type == "text"]
+            text = text_blocks[0].text if text_blocks else ""
+            yield {"event": "complete", "data": text}
+            return
+
+        tool_use_blocks = [b for b in response.content if b.type == "tool_use"]
+        if not tool_use_blocks:
+            text_blocks = [b for b in response.content if b.type == "text"]
+            text = text_blocks[0].text if text_blocks else ""
+            yield {"event": "complete", "data": text}
+            return
+
+        tool_results = []
+        for block in tool_use_blocks:
+            tool_name = block.name
+            tool_input = block.input
+            log.info("tool_call_stream", tool=tool_name)
+
+            yield {"event": "tool_start", "tool": tool_name}
+
+            if tool_name not in tool_handlers:
+                result = f"Error: tool '{tool_name}' not registered."
+            else:
+                try:
+                    result = await tool_handlers[tool_name](**tool_input)
+                    result = str(result)
+                except Exception as e:
+                    result = f"Tool error: {str(e)}"
+                    log.error("tool_error_stream", tool=tool_name, error=str(e))
+
+            yield {"event": "tool_done", "tool": tool_name}
+
+            tool_results.append({
+                "type": "tool_result",
+                "tool_use_id": block.id,
+                "content": result,
+            })
+
+        messages.append({"role": "assistant", "content": response.content})
+        messages.append({"role": "user", "content": tool_results})
+
+    raise ClaudeError("The AI agent took too many steps. Please try again.", 504)

@@ -113,7 +113,7 @@ STAGE_DEFAULTS = [
 
 
 # ── Agent: Neighbourhood Intelligence ─────────────────────────────────────
-from app.core.claude import ask_claude_with_tools
+from app.core.claude import ask_claude_with_tools, ask_claude_with_tools_streaming
 from app.prompts.neighbourhood_prompt import (
     NEIGHBOURHOOD_AGENT_SYSTEM,
     neighbourhood_briefing_prompt,
@@ -144,3 +144,24 @@ async def run_neighbourhood_agent(req: NeighbourhoodRequest) -> NeighbourhoodRes
 
     data = _parse_json(raw, "neighbourhood_agent")
     return NeighbourhoodResponse(**data)
+
+
+from typing import AsyncGenerator
+
+async def stream_neighbourhood_agent(req: NeighbourhoodRequest) -> AsyncGenerator[dict, None]:
+    """Streaming variant — yields tool progress events then the final result."""
+    prompt = neighbourhood_briefing_prompt(req.postcode, req.buyer_priorities)
+
+    async for event in ask_claude_with_tools_streaming(
+        prompt=prompt,
+        tools=NEIGHBOURHOOD_TOOL_DEFINITIONS,
+        tool_handlers=NEIGHBOURHOOD_TOOL_HANDLERS,
+        system=NEIGHBOURHOOD_AGENT_SYSTEM,
+        max_tokens=3000,
+        max_iterations=8,
+    ):
+        if event["event"] == "complete":
+            data = _parse_json(event["data"], "neighbourhood_agent_stream")
+            yield {"event": "complete", "data": data}
+        else:
+            yield event

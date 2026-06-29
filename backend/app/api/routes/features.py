@@ -292,7 +292,9 @@ async def health():
 
 # ── Stage 2: Neighbourhood Intelligence Agent ──────────────────────────────
 from app.models.schemas import NeighbourhoodRequest, NeighbourhoodResponse
-from app.services.features import run_neighbourhood_agent
+from app.services.features import run_neighbourhood_agent, stream_neighbourhood_agent
+from fastapi.responses import StreamingResponse
+import json
 
 @router.post("/evaluate/neighbourhood", response_model=NeighbourhoodResponse)
 async def get_neighbourhood_briefing(req: NeighbourhoodRequest):
@@ -300,3 +302,24 @@ async def get_neighbourhood_briefing(req: NeighbourhoodRequest):
         return await run_neighbourhood_agent(req)
     except Exception as e:
         _handle_claude_error(e)
+
+
+@router.post("/evaluate/neighbourhood/stream")
+async def stream_neighbourhood_briefing(req: NeighbourhoodRequest):
+    """SSE endpoint — streams tool_start / tool_done / complete events."""
+    async def generate():
+        try:
+            async for event in stream_neighbourhood_agent(req):
+                yield f"data: {json.dumps(event)}\n\n"
+        except Exception as e:
+            err = {"event": "error", "message": str(e)}
+            yield f"data: {json.dumps(err)}\n\n"
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
