@@ -15,11 +15,15 @@ from app.models.schemas import (
     OfferStrategyRequest, OfferStrategyResponse,
     FetchListingRequest, FetchListingResponse,
     SavePropertyRequest, SavedPropertyResponse, UpdatePropertyNotesRequest,
+    ViewingQuestionsRequest, ViewingQuestionsResponse,
+    NeighbourhoodRequest, NeighbourhoodResponse,
 )
 from app.services.features import (
     calculate_costs, decode_listing,
     explain_document, interpret_survey,
     get_offer_strategy,
+    generate_viewing_questions,
+    run_neighbourhood_agent, stream_neighbourhood_agent,
 )
 from app.services.rightmove import fetch_listing, RightmoveError
 import pypdf
@@ -300,9 +304,6 @@ async def health():
 
 
 # ── Stage 2: Neighbourhood Intelligence Agent ──────────────────────────────
-from app.models.schemas import NeighbourhoodRequest, NeighbourhoodResponse
-from app.services.features import run_neighbourhood_agent, stream_neighbourhood_agent, generate_viewing_questions
-from app.models.schemas import ViewingQuestionsRequest, ViewingQuestionsResponse
 from fastapi.responses import StreamingResponse
 import json
 
