@@ -16,7 +16,7 @@ import { ProgressBar } from '@/components/ui'
 import {
   Home, Loader2, CheckCircle, ChevronRight, LogOut, User,
   PoundSterling, Search, FileText, ClipboardCheck, Menu, X,
-  Handshake, Key, Lock, Sparkles,
+  Handshake, Key, Lock, Sparkles, Bookmark,
 } from 'lucide-react'
 import type { JourneyStage } from '@/types'
 
@@ -116,6 +116,26 @@ function Sidebar({ stages }: { stages: JourneyStage[] }) {
       {/* Stage navigation */}
       <div className="glass-card px-2 py-2 flex flex-col gap-0.5">
         {stages.map((s, i) => <StageLink key={s.stage} stage={s} index={i} />)}
+      </div>
+
+      {/* My Shortlist */}
+      <div className="glass-card px-2 py-2">
+        <NavLink
+          to="/shortlist"
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all group ${
+              isActive
+                ? 'bg-brand-light text-brand font-semibold border-l-2 border-brand pl-[10px]'
+                : 'text-ink-muted hover:text-ink hover:bg-surface-2'
+            }`
+          }
+        >
+          <span className="w-7 h-7 rounded-lg bg-surface-2 border border-border flex items-center justify-center flex-shrink-0 group-hover:border-brand/30 group-hover:text-brand transition-colors">
+            <Bookmark className="w-3.5 h-3.5" />
+          </span>
+          <span className="flex-1">My Shortlist</span>
+          <ChevronRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-40 transition-opacity flex-shrink-0" />
+        </NavLink>
       </div>
 
       {/* Tip card */}
