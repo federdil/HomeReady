@@ -29,13 +29,21 @@ log = structlog.get_logger()
 
 
 def _parse_json(raw: str, label: str) -> dict:
-    """Strip any accidental markdown fences and parse JSON."""
+    """Strip markdown fences and prose preamble, then parse JSON."""
     clean = raw.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
     try:
         return json.loads(clean)
-    except json.JSONDecodeError as e:
-        log.error("json_parse_error", label=label, error=str(e), raw=raw[:200])
-        raise ValueError(f"AI returned invalid JSON for {label}") from e
+    except json.JSONDecodeError:
+        # Claude sometimes adds prose before/after the JSON object — extract it
+        start = clean.find('{')
+        end = clean.rfind('}')
+        if start != -1 and end != -1 and end > start:
+            try:
+                return json.loads(clean[start:end + 1])
+            except json.JSONDecodeError:
+                pass
+        log.error("json_parse_error", label=label, raw=raw[:400])
+        raise ValueError(f"AI returned invalid JSON for {label}")
 
 
 # ── Cost Calculator ────────────────────────────────────────────────────────
