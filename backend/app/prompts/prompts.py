@@ -91,6 +91,63 @@ Return a JSON object with this exact structure:
 Be honest and direct. Common euphemisms to watch for: 'cosy/compact' = small, 'investment opportunity' = needs work, 'vibrant area' = noisy, 'moments from' = further than it sounds, 'well-presented' = recently decorated to hide issues."""
 
 
+# ── Viewing Question Generator ─────────────────────────────────────────────
+
+VIEWING_QUESTIONS_SYSTEM = BASE_SYSTEM + """
+You are an expert property buyer's advocate with 20 years experience helping first-time buyers in the UK. You generate sharp, specific viewing questions that expose hidden problems estate agents don't volunteer. Every question must be answerable at a viewing — not things to research online."""
+
+
+def viewing_questions_prompt(
+    listing_text: str,
+    property_type: str = "unknown",
+    red_flags: list[str] | None = None,
+    leasehold_detected: bool = False,
+) -> str:
+    flags_str = "\n".join(f"- {f}" for f in red_flags) if red_flags else "None identified"
+    leasehold_note = "This is a leasehold property — include leasehold-specific questions." if leasehold_detected else ""
+
+    return f"""Generate comprehensive viewing questions for a first-time buyer visiting this UK property.
+
+LISTING:
+{listing_text}
+
+Property type: {property_type}
+Red flags already identified:
+{flags_str}
+{leasehold_note}
+
+Return a JSON object with this exact structure:
+{{
+  "priority_questions": [
+    "<The 3 most critical questions — if answered badly, walk away>"
+  ],
+  "categories": [
+    {{
+      "name": "Structural & Building Condition",
+      "questions": ["<4-6 targeted questions about fabric, damp, roof, windows, boiler age>"]
+    }},
+    {{
+      "name": "Legal & Ownership",
+      "questions": ["<3-5 questions about boundaries, planning history, building regs, disputes — include leasehold questions if relevant>"]
+    }},
+    {{
+      "name": "Running Costs",
+      "questions": ["<3-5 questions about council tax band, service charge, ground rent, utility bills, broadband>"]
+    }},
+    {{
+      "name": "Practical & Lifestyle",
+      "questions": ["<3-5 questions about parking, storage, neighbours, noise, mobile signal, bins>"]
+    }},
+    {{
+      "name": "Seller Motivation",
+      "questions": ["<2-3 questions that reveal how motivated the seller is and whether there are hidden problems>"]
+    }}
+  ]
+}}
+
+Make every question specific to THIS property based on what the listing says and omits. Do not include generic questions that apply to any property."""
+
+
 # ── Document Explainer ─────────────────────────────────────────────────────
 DOCUMENT_SYSTEM = BASE_SYSTEM + """
 

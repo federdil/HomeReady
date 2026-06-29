@@ -182,6 +182,30 @@ export async function streamNeighbourhoodBriefing(
   }
 }
 
+// ── Viewing Question Generator ───────────────────────────────────────────────
+export interface ViewingQuestionCategory {
+  name: string
+  questions: string[]
+}
+
+export interface ViewingQuestionsResult {
+  priority_questions: string[]
+  categories: ViewingQuestionCategory[]
+}
+
+export interface ViewingQuestionsInput {
+  listing_text: string
+  property_type?: string | null
+  red_flags?: string[]
+  leasehold_detected?: boolean
+}
+
+export const generateViewingQuestions = (
+  data: ViewingQuestionsInput
+): Promise<ViewingQuestionsResult> =>
+  api.post('/api/v1/evaluate/questions', data).then(r => r.data)
+
+
 // ── Checklist ───────────────────────────────────────────────────────────────
 export interface ChecklistResponse {
   items: ChecklistItem[]

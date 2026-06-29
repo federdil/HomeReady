@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { decodeListing, fetchRightmoveListing, saveProperty } from '@/lib/api'
+import { decodeListing, fetchRightmoveListing, saveProperty, generateViewingQuestions } from '@/lib/api'
+import type { ViewingQuestionsResult } from '@/lib/api'
 import { useMarkStage } from '@/lib/useMarkStage'
 import type { ListingDecoderResult, FetchedListing } from '@/types'
 import { cn } from '@/lib/utils'
@@ -9,7 +10,7 @@ import { SolidCard, PageHeader, PrimaryButton, FormField, RiskBadge, Callout } f
 import {
   AlertTriangle, CheckCircle, HelpCircle, Eye, Home, Info,
   Loader2, Link, FileText, Bookmark, BookmarkCheck, MapPin, TrendingDown,
-  ArrowRight, ExternalLink, ShieldAlert,
+  ArrowRight, ExternalLink, ShieldAlert, ClipboardCopy,
 } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 
@@ -167,24 +168,33 @@ function ContextCTAs({ result, fetched }: { result: ListingDecoderResult; fetche
 
 // ── Sub-nav ───────────────────────────────────────────────────────────────────
 
-function SubNav() {
+type EvaluateTab = 'decoder' | 'viewing'
+
+function SubNav({ tab, setTab, hasResult }: { tab: EvaluateTab; setTab: (t: EvaluateTab) => void; hasResult: boolean }) {
+  const tabClass = (active: boolean) => cn(
+    'px-4 py-2 rounded-xl transition-colors text-sm font-semibold',
+    active ? 'bg-brand text-white shadow-sm' : 'bg-surface-2 border border-border text-ink-muted hover:text-ink hover:bg-surface-3'
+  )
   return (
     <div className="flex gap-2 text-sm font-semibold flex-wrap">
-      <NavLink to="/evaluate" end
-        className={({ isActive }) => cn(
-          'px-4 py-2 rounded-xl transition-colors',
-          isActive ? 'bg-brand text-white shadow-sm' : 'bg-surface-2 border border-border text-ink-muted hover:text-ink hover:bg-surface-3'
-        )}
-      >
+      <button className={tabClass(tab === 'decoder')} onClick={() => setTab('decoder')}>
         Listing Decoder
-      </NavLink>
+      </button>
+      <button
+        className={cn(tabClass(tab === 'viewing'), 'flex items-center gap-2')}
+        onClick={() => setTab('viewing')}
+      >
+        <HelpCircle className="w-3.5 h-3.5" />
+        Viewing Prep
+        {!hasResult && <span className="text-[10px] font-medium opacity-60">decode first</span>}
+      </button>
       <NavLink to="/evaluate/neighbourhood"
         className={({ isActive }) => cn(
           'px-4 py-2 rounded-xl transition-colors',
           isActive ? 'bg-brand text-white shadow-sm' : 'bg-surface-2 border border-border text-ink-muted hover:text-ink hover:bg-surface-3'
         )}
       >
-        Neighbourhood Briefing
+        Neighbourhood
       </NavLink>
       <NavLink to="/shortlist"
         className={({ isActive }) => cn(
@@ -201,7 +211,141 @@ function SubNav() {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
+// ── Viewing Prep Panel ────────────────────────────────────────────────────────
+
+function ViewingPrepPanel({
+  result,
+  viewingQs,
+  isPending,
+  error,
+  onGenerate,
+}: {
+  result: ListingDecoderResult | null
+  viewingQs: ViewingQuestionsResult | null
+  isPending: boolean
+  error: any
+  onGenerate: () => void
+}) {
+  const [copied, setCopied] = useState(false)
+
+  const copyAll = () => {
+    if (!viewingQs) return
+    const lines = [
+      '🏠 VIEWING PREP — PRIORITY QUESTIONS',
+      ...viewingQs.priority_questions.map((q, i) => `${i + 1}. ${q}`),
+      '',
+      ...viewingQs.categories.map(cat =>
+        [`\n${cat.name.toUpperCase()}`, ...cat.questions.map((q, i) => `${i + 1}. ${q}`)].join('\n')
+      ),
+    ].join('\n')
+    navigator.clipboard.writeText(lines)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  if (!result) {
+    return (
+      <div className="card p-10 text-center">
+        <div className="w-14 h-14 rounded-2xl bg-surface-2 border border-border flex items-center justify-center mx-auto mb-4">
+          <HelpCircle className="w-6 h-6 text-ink-faint" />
+        </div>
+        <p className="font-display text-xl text-ink mb-2">Decode a listing first</p>
+        <p className="text-sm text-ink-muted">Switch to Listing Decoder, paste a Rightmove link, then come back here for your personalised viewing questions.</p>
+      </div>
+    )
+  }
+
+  if (!viewingQs && !isPending) {
+    return (
+      <div className="card p-8 text-center space-y-4">
+        <div className="w-14 h-14 rounded-2xl bg-brand-light flex items-center justify-center mx-auto">
+          <HelpCircle className="w-6 h-6 text-brand" />
+        </div>
+        <div>
+          <p className="font-display text-xl text-ink">Viewing Prep</p>
+          <p className="text-sm text-ink-muted mt-1 max-w-sm mx-auto">
+            Generate a full set of categorised questions to take to the viewing — tailored to this specific property and its red flags.
+          </p>
+        </div>
+        <PrimaryButton onClick={onGenerate}>Generate viewing questions</PrimaryButton>
+        {error && <Callout variant="danger">{error?.userMessage ?? 'Something went wrong. Please try again.'}</Callout>}
+      </div>
+    )
+  }
+
+  if (isPending) {
+    return (
+      <div className="card p-8 text-center space-y-4">
+        <div className="w-14 h-14 rounded-2xl bg-brand-light flex items-center justify-center mx-auto">
+          <Loader2 className="w-6 h-6 text-brand animate-spin" />
+        </div>
+        <div>
+          <p className="font-display text-xl text-ink">Preparing your questions…</p>
+          <p className="text-sm text-ink-muted mt-1">Analysing the listing and red flags</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-5 animate-results">
+      {/* Priority questions hero */}
+      <div className="card p-5" style={{ background: 'linear-gradient(135deg, #F5F3FF 0%, #EDE9F8 100%)', borderColor: 'rgba(91,61,174,0.15)' }}>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-brand flex items-center justify-center">
+              <HelpCircle className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <h2 className="font-display text-base text-ink">Priority questions</h2>
+              <p className="text-xs text-ink-muted">Ask these first — bad answers mean walk away</p>
+            </div>
+          </div>
+          <button
+            onClick={copyAll}
+            className="flex items-center gap-1.5 text-xs font-semibold text-brand hover:text-brand-hover px-3 py-1.5 rounded-lg hover:bg-white/60 transition-colors"
+          >
+            {copied ? <><CheckCircle className="w-3.5 h-3.5" /> Copied</> : <><ClipboardCopy className="w-3.5 h-3.5" /> Copy all</>}
+          </button>
+        </div>
+        <ol className="space-y-3">
+          {viewingQs!.priority_questions.map((q, i) => (
+            <li key={i} className="flex gap-3 text-sm text-ink">
+              <span className="w-6 h-6 rounded-full bg-brand text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
+              <span className="leading-relaxed font-medium">{q}</span>
+            </li>
+          ))}
+        </ol>
+      </div>
+
+      {/* Category cards */}
+      {viewingQs!.categories.map((cat) => (
+        <SolidCard key={cat.name}>
+          <h3 className="font-display text-base text-ink mb-3">{cat.name}</h3>
+          <ol className="space-y-2.5">
+            {cat.questions.map((q, i) => (
+              <li key={i} className="flex gap-3 text-sm text-ink-muted">
+                <span className="w-5 h-5 rounded-full bg-surface-2 border border-border text-ink-faint text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
+                <span className="leading-relaxed">{q}</span>
+              </li>
+            ))}
+          </ol>
+        </SolidCard>
+      ))}
+
+      <button
+        onClick={onGenerate}
+        className="text-xs text-ink-faint hover:text-ink-muted underline underline-offset-2 transition-colors"
+      >
+        Regenerate questions
+      </button>
+    </div>
+  )
+}
+
+
 export default function EvaluatePage() {
+  const [tab, setTab]             = useState<EvaluateTab>('decoder')
   const [result, setResult]       = useState<ListingDecoderResult | null>(null)
   const [fetched, setFetched]     = useState<FetchedListing | null>(null)
   const [inputMode, setInputMode] = useState<'url' | 'paste'>('url')
@@ -210,6 +354,8 @@ export default function EvaluatePage() {
   const [propertyType, setPropertyType] = useState('')
   const [saved, setSaved]         = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [viewingQs, setViewingQs] = useState<ViewingQuestionsResult | null>(null)
+  const [listingText, setListingText] = useState('')
   const markStage = useMarkStage()
   const qc = useQueryClient()
 
@@ -217,6 +363,7 @@ export default function EvaluatePage() {
     mutationFn: fetchRightmoveListing,
     onSuccess: (data) => {
       setFetched(data)
+      setListingText(data.listing_text)
       if (data.property_type) setPropertyType(data.property_type)
       decodeMutation.mutate({ listing_text: data.listing_text, property_type: data.property_type || propertyType })
     },
@@ -226,6 +373,7 @@ export default function EvaluatePage() {
     mutationFn: decodeListing,
     onSuccess: (data) => {
       setResult(data)
+      setViewingQs(null)
       setSaved(false)
       setSaveError(null)
       markStage('evaluation', 'in_progress')
@@ -254,6 +402,16 @@ export default function EvaluatePage() {
     onError: (e: any) => setSaveError(e?.userMessage ?? 'Could not save. Please try again.'),
   })
 
+  const viewingMutation = useMutation({
+    mutationFn: () => generateViewingQuestions({
+      listing_text: listingText || pasteText,
+      property_type: fetched?.property_type || propertyType || null,
+      red_flags: result?.red_flags ?? [],
+      leasehold_detected: result?.leasehold?.detected ?? false,
+    }),
+    onSuccess: (data) => setViewingQs(data),
+  })
+
   const handleUrlSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!url.trim()) return
@@ -264,7 +422,7 @@ export default function EvaluatePage() {
   const handlePasteSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!pasteText.trim()) return
-    setResult(null); setFetched(null); setSaved(false)
+    setResult(null); setFetched(null); setSaved(false); setListingText(pasteText)
     decodeMutation.mutate({ listing_text: pasteText, property_type: propertyType })
   }
 
@@ -281,7 +439,7 @@ export default function EvaluatePage() {
       />
 
       {/* Sub-navigation */}
-      <SubNav />
+      <SubNav tab={tab} setTab={setTab} hasResult={!!result} />
 
       {/* Input card */}
       <SolidCard>
@@ -384,8 +542,19 @@ export default function EvaluatePage() {
         )}
       </SolidCard>
 
+      {/* Viewing Prep tab */}
+      {tab === 'viewing' && (
+        <ViewingPrepPanel
+          result={result}
+          viewingQs={viewingQs}
+          isPending={viewingMutation.isPending}
+          error={viewingMutation.error as any}
+          onGenerate={() => viewingMutation.mutate()}
+        />
+      )}
+
       {/* Results */}
-      {result && (
+      {tab === 'decoder' && result && (
         <div className="space-y-5 animate-results">
 
           {/* Hero: Trust score */}
@@ -570,29 +739,21 @@ export default function EvaluatePage() {
             </SolidCard>
           )}
 
-          {/* Viewing questions */}
+          {/* Viewing questions teaser → tab CTA */}
           {result.viewing_questions.length > 0 && (
-            <div className="card-tinted p-5 rounded-2xl border border-brand/15">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-8 h-8 rounded-lg bg-brand-light flex items-center justify-center">
-                  <HelpCircle className="w-4 h-4 text-brand" />
-                </div>
-                <div>
-                  <h3 className="font-display text-base text-ink">Questions to ask at the viewing</h3>
-                  <p className="text-xs text-ink-muted">Prepared by HomeReady based on this listing</p>
-                </div>
+            <button
+              onClick={() => setTab('viewing')}
+              className="w-full flex items-center gap-4 p-4 rounded-xl bg-brand-light border border-brand/20 hover:bg-brand/10 transition-colors text-left group"
+            >
+              <div className="w-9 h-9 rounded-xl bg-brand flex items-center justify-center shrink-0">
+                <HelpCircle className="w-4 h-4 text-white" />
               </div>
-              <ol className="space-y-3">
-                {result.viewing_questions.map((q, i) => (
-                  <li key={i} className="flex gap-3 text-sm text-ink-muted">
-                    <span className="w-5 h-5 rounded-full bg-brand text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
-                      {i + 1}
-                    </span>
-                    <span className="leading-relaxed">{q}</span>
-                  </li>
-                ))}
-              </ol>
-            </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-brand">Prepare for your viewing</p>
+                <p className="text-xs text-ink-muted mt-0.5">{result.viewing_questions.length} questions ready — get the full categorised set in Viewing Prep</p>
+              </div>
+              <ArrowRight className="w-4 h-4 text-brand shrink-0" />
+            </button>
           )}
 
           {/* Continue your research */}

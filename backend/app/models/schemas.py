@@ -254,6 +254,22 @@ class UpdatePropertyNotesRequest(BaseModel):
     notes: str
 
 
+# ── Viewing Question Generator ────────────────────────────────────────────
+class ViewingQuestionsRequest(BaseModel):
+    listing_text: str
+    property_type: Optional[str] = None
+    red_flags: Optional[list[str]] = None
+    leasehold_detected: Optional[bool] = None
+
+class ViewingQuestionCategory(BaseModel):
+    name: str
+    questions: list[str]
+
+class ViewingQuestionsResponse(BaseModel):
+    priority_questions: list[str]
+    categories: list[ViewingQuestionCategory]
+
+
 # ── Checklist ─────────────────────────────────────────────────────────────
 class ChecklistItemResponse(BaseModel):
     id: UUID

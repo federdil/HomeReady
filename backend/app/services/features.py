@@ -10,11 +10,13 @@ from app.prompts.prompts import (
     DOCUMENT_SYSTEM,
     SURVEY_SYSTEM,
     NEGOTIATION_SYSTEM,
+    VIEWING_QUESTIONS_SYSTEM,
     cost_calculator_prompt,
     listing_decoder_prompt,
     document_explainer_prompt,
     survey_interpreter_prompt,
     negotiation_coach_prompt,
+    viewing_questions_prompt,
 )
 from app.models.schemas import (
     CostCalculatorRequest, CostCalculatorResponse,
@@ -22,6 +24,7 @@ from app.models.schemas import (
     DocumentExplainerRequest, DocumentExplainerResponse,
     SurveyInterpreterRequest, SurveyInterpreterResponse,
     OfferStrategyRequest, OfferStrategyResponse,
+    ViewingQuestionsRequest, ViewingQuestionsResponse,
 )
 import structlog
 
@@ -107,6 +110,19 @@ async def get_offer_strategy(req: OfferStrategyRequest) -> OfferStrategyResponse
     raw = await ask_claude(prompt, system=NEGOTIATION_SYSTEM, max_tokens=2048)
     data = _parse_json(raw, "offer_strategy")
     return OfferStrategyResponse(**data)
+
+
+# ── Viewing Question Generator ────────────────────────────────────────────
+async def generate_viewing_questions(req: ViewingQuestionsRequest) -> ViewingQuestionsResponse:
+    prompt = viewing_questions_prompt(
+        listing_text=req.listing_text,
+        property_type=req.property_type or "unknown",
+        red_flags=req.red_flags,
+        leasehold_detected=req.leasehold_detected or False,
+    )
+    raw = await ask_claude(prompt, system=VIEWING_QUESTIONS_SYSTEM, max_tokens=2048)
+    data = _parse_json(raw, "viewing_questions")
+    return ViewingQuestionsResponse(**data)
 
 
 # ── Journey stage defaults ─────────────────────────────────────────────────

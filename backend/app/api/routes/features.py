@@ -284,6 +284,15 @@ async def update_journey_stage(
     return {"ok": True, "stage": stage, "status": status}
 
 
+# ── Viewing Question Generator ─────────────────────────────────────────────
+@router.post("/evaluate/questions", response_model=ViewingQuestionsResponse)
+async def get_viewing_questions(req: ViewingQuestionsRequest):
+    try:
+        return await generate_viewing_questions(req)
+    except Exception as e:
+        _handle_claude_error(e)
+
+
 # ── Health ─────────────────────────────────────────────────────────────────
 @router.get("/health")
 async def health():
@@ -292,7 +301,8 @@ async def health():
 
 # ── Stage 2: Neighbourhood Intelligence Agent ──────────────────────────────
 from app.models.schemas import NeighbourhoodRequest, NeighbourhoodResponse
-from app.services.features import run_neighbourhood_agent, stream_neighbourhood_agent
+from app.services.features import run_neighbourhood_agent, stream_neighbourhood_agent, generate_viewing_questions
+from app.models.schemas import ViewingQuestionsRequest, ViewingQuestionsResponse
 from fastapi.responses import StreamingResponse
 import json
 
