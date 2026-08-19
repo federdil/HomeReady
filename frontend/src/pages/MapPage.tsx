@@ -44,7 +44,7 @@ function propertyPin(score: number | null, selected: boolean, active = true) {
 const workplacePin = L.divIcon({
   className: '',
   html: `<div style="
-    width:28px;height:28px;background:#111827;color:#fff;border-radius:8px;
+    width:28px;height:28px;background:#2A1620;color:#fff;border-radius:8px;
     display:flex;align-items:center;justify-content:center;
     border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.35);">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -510,7 +510,7 @@ export default function MapPage() {
             {selectedLine && (
               <Polyline
                 positions={selectedLine}
-                pathOptions={{ color: '#5B3DAE', weight: 2, dashArray: '5 6', opacity: 0.7 }}
+                pathOptions={{ color: '#9C2F62', weight: 2, dashArray: '5 6', opacity: 0.7 }}
               />
             )}
 

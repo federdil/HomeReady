@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import {
-  BrowserRouter, Routes, Route, Navigate, NavLink, useLocation, useNavigate,
+  BrowserRouter, Routes, Route, Navigate, NavLink, Link, useLocation, useNavigate,
 } from 'react-router-dom'
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
 import { getPersona } from '@/lib/api'
@@ -15,6 +15,7 @@ import HomeownerPage from '@/pages/HomeownerPage'
 import OfferPage from '@/pages/OfferPage'
 import ShortlistPage from '@/pages/ShortlistPage'
 import { PrimaryButton } from '@/components/ui'
+import { Logo, LogoMark } from '@/components/Logo'
 import {
   Home, Loader2, LogOut, User, PoundSterling, Search, FileText,
   ClipboardCheck, Menu, X, Handshake, Map as MapIcon, SlidersHorizontal, Save,
@@ -100,10 +101,7 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
       <div className="fixed left-0 top-0 bottom-0 z-50 w-72 flex flex-col gap-3 py-6 px-4 md:hidden bg-surface-2 border-r border-border shadow-xl overflow-y-auto">
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-brand flex items-center justify-center">
-              <Home className="w-3.5 h-3.5 text-white" />
-            </div>
-            <span className="font-display text-lg text-ink">HomeReady</span>
+            <Logo size={24} />
           </div>
           <button
             onClick={onClose}
@@ -152,24 +150,23 @@ function TopNav({ onMenuClick }: { onMenuClick: () => void }) {
   const navigate = useNavigate()
 
   return (
-    <header className="sticky top-0 z-50 flex items-center px-4 md:px-6 h-14 gap-3 bg-surface/95 backdrop-blur border-b border-border">
-      <button
-        onClick={onMenuClick}
-        className="md:hidden p-1.5 -ml-1 rounded-lg hover:bg-surface-2 text-ink-muted hover:text-ink transition-colors"
-        aria-label="Open navigation menu"
-      >
-        <Menu className="w-5 h-5" />
-      </button>
-
-      <div className="flex items-center gap-2">
-        <div className="w-7 h-7 rounded-lg bg-brand items-center justify-center hidden md:flex">
-          <Home className="w-3.5 h-3.5 text-white" />
-        </div>
-        <span className="font-display text-lg text-ink">HomeReady</span>
-        <span className="badge badge-brand text-[10px] px-2 py-0.5">beta</span>
+    <header className="sticky top-0 z-50 grid grid-cols-[1fr_auto_1fr] items-center px-4 md:px-6 h-16 gap-3 bg-surface/95 backdrop-blur border-b border-border">
+      <div className="flex items-center justify-start">
+        <button
+          onClick={onMenuClick}
+          className="md:hidden p-1.5 -ml-1 rounded-lg hover:bg-surface-2 text-ink-muted hover:text-ink transition-colors"
+          aria-label="Open navigation menu"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
       </div>
 
-      <div className="ml-auto flex items-center gap-2">
+      <Link to="/" className="flex items-center gap-2 justify-center" aria-label="HomeReady home">
+        <Logo size={26} />
+        <span className="badge badge-brand text-[10px] px-2 py-0.5 hidden sm:inline-flex">beta</span>
+      </Link>
+
+      <div className="flex items-center gap-2 justify-end">
         {isGuest ? (
           // A guest's work lives in this browser only, so the offer to keep it
           // is the useful control here — not a sign-out that would discard it.
@@ -205,9 +202,7 @@ function Spinner() {
   return (
     <div className="min-h-screen flex items-center justify-center">
       <div className="flex flex-col items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-brand flex items-center justify-center">
-          <Home className="w-5 h-5 text-white" />
-        </div>
+        <LogoMark size={34} />
         <Loader2 className="w-5 h-5 text-brand animate-spin" />
       </div>
     </div>
@@ -228,9 +223,7 @@ function RequireSession({ children }: { children: React.ReactNode }) {
     return (
       <div className="min-h-screen flex items-center justify-center px-6">
         <div className="max-w-sm text-center">
-          <div className="w-12 h-12 rounded-xl bg-surface-2 border border-border flex items-center justify-center mx-auto mb-4">
-            <Home className="w-5 h-5 text-ink-faint" />
-          </div>
+          <div className="flex justify-center mb-4"><LogoMark size={34} /></div>
           <h1 className="font-display text-xl text-ink mb-2">Couldn&rsquo;t start your session</h1>
           <p className="text-sm text-ink-muted leading-relaxed mb-5">
             {startupError ?? 'Something went wrong reaching the server.'}

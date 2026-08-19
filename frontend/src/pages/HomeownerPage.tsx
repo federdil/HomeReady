@@ -180,7 +180,7 @@ export default function HomeownerPage() {
 
       {/* Progress hero */}
       <div className="card p-6 flex flex-col sm:flex-row items-start sm:items-center gap-5"
-        style={{ background: 'linear-gradient(135deg, #F5F3FF 0%, #EDE9F8 100%)', borderColor: 'rgba(91,61,174,0.15)' }}
+        style={{ background: 'linear-gradient(135deg, #FEF5F8 0%, #FBE9F0 100%)', borderColor: 'rgba(156,47,98,0.15)' }}
       >
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-2xl bg-brand/10 border border-brand/20 flex items-center justify-center shrink-0">

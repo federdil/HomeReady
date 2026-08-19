@@ -199,8 +199,8 @@ export default function ReadinessPage() {
               <p className="stat-card-value">{formatGBP(result.total_cost - result.property_price)}</p>
               <p className="stat-card-sub">Legal, survey & more</p>
             </div>
-            <div className="stat-card animate-in" style={{ background: 'linear-gradient(135deg, #EDE9F8 0%, #F5F3FF 100%)', borderColor: 'rgba(91,61,174,0.20)' }}>
-              <p className="stat-card-label" style={{ color: '#7B55C8' }}>Total you need</p>
+            <div className="stat-card animate-in" style={{ background: 'linear-gradient(135deg, #FBE9F0 0%, #FEF5F8 100%)', borderColor: 'rgba(156,47,98,0.20)' }}>
+              <p className="stat-card-label" style={{ color: '#BE5183' }}>Total you need</p>
               <p className="stat-card-value text-brand">{formatGBP(result.total_cost)}</p>
             </div>
           </div>

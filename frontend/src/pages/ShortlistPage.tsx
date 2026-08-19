@@ -277,7 +277,7 @@ export default function ShortlistPage() {
 
       {visible.length === 0 && !isLoading && (
         <div className="card p-12 text-center"
-          style={{ background: 'linear-gradient(135deg, #F5F3FF 0%, #EDE9F8 100%)', borderColor: 'rgba(91,61,174,0.12)' }}
+          style={{ background: 'linear-gradient(135deg, #FEF5F8 0%, #FBE9F0 100%)', borderColor: 'rgba(156,47,98,0.12)' }}
         >
           <div className="w-14 h-14 rounded-2xl bg-brand/10 flex items-center justify-center mx-auto mb-4">
             <Bookmark className="w-6 h-6 text-brand" />

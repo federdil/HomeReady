@@ -6,27 +6,27 @@ export default {
       colors: {
         // ── Core ink scale ──────────────────────────────────────────────────
         ink: {
-          DEFAULT: '#111827',
-          muted:   '#4B5563',
-          faint:   '#9CA3AF',
+          DEFAULT: '#2A1620',
+          muted:   '#6B5460',
+          faint:   '#9A8791',
         },
         // ── Surface scale ────────────────────────────────────────────────────
         surface: {
           DEFAULT: '#FFFFFF',
-          2:       '#F9FAFB',
-          3:       '#F3F4F6',
+          2:       '#FDF8F9',
+          3:       '#F7EDF0',
         },
         border: {
-          DEFAULT: '#E5E7EB',
-          strong:  '#D1D5DB',
+          DEFAULT: '#EFDCE4',
+          strong:  '#E2C7D3',
         },
-        // ── Brand (purple) ───────────────────────────────────────────────────
+        // ── Brand (bramble) ──────────────────────────────────────────────────
         brand: {
-          DEFAULT: '#5B3DAE',
-          hover:   '#4A2F96',
-          light:   '#EDE9F8',
-          mid:     '#7B55C8',
-          faint:   'rgba(91,61,174,0.08)',
+          DEFAULT: '#9C2F62',
+          hover:   '#6E1E45',
+          light:   '#FBE9F0',
+          mid:     '#BE5183',
+          faint:   'rgba(156,47,98,0.08)',
         },
         // ── Semantic ─────────────────────────────────────────────────────────
         success: {
@@ -44,23 +44,30 @@ export default {
           bg:      '#FEF2F2',
           border:  '#FECACA',
         },
+        // ── Fit score ramp (validated: see lib/fit.ts) ───────────────────────
+        fit: {
+          strong: '#0284C7',
+          mixed:  '#78716C',
+          poor:   '#C2410C',
+          none:   '#A89A9F',
+        },
         // ── Legacy tokens (kept for backward compat in pages not yet revamped) ──
-        plum:    { DEFAULT: '#111827', soft: '#4B5563' },
-        purple:  { DEFAULT: '#5B3DAE', mid: '#7B55C8', pale: '#4A2F96', faint: 'rgba(91,61,174,0.08)' },
-        dusk:    { DEFAULT: '#F3F4F6', deep: '#E5E7EB' },
+        plum:    { DEFAULT: '#2A1620', soft: '#6B5460' },
+        purple:  { DEFAULT: '#9C2F62', mid: '#BE5183', pale: '#6E1E45', faint: 'rgba(156,47,98,0.08)' },
+        dusk:    { DEFAULT: '#F7EDF0', deep: '#EFDCE4' },
         apricot: { DEFAULT: '#F0D4B4', light: '#F8F0E6' },
         sage:    { DEFAULT: '#16A34A', light: '#F0FDF4' },
         amber:   { DEFAULT: '#D97706', light: '#FFFBEB' },
         navy:    { DEFAULT: '#0B1F4B', 50: '#EEF1F8' },
-        'purple-faint': 'rgba(91,61,174,0.08)',
-        'purple-soft':  '#7B55C8',
-        'purple-mid':   '#7B55C8',
-        'dusk-deep':    '#E5E7EB',
+        'purple-faint': 'rgba(156,47,98,0.08)',
+        'purple-soft':  '#BE5183',
+        'purple-mid':   '#BE5183',
+        'dusk-deep':    '#EFDCE4',
         'sage-light':   '#F0FDF4',
         'amber-light':  '#FFFBEB',
       },
       fontFamily: {
-        display: ['"DM Serif Display"', 'serif'],
+        display: ['Fraunces', 'Georgia', 'serif'],
         sans:    ['Inter', 'sans-serif'],
         body:    ['Inter', 'sans-serif'],
       },

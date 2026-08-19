@@ -57,7 +57,7 @@ function TrustRing({ score }: { score: number }) {
             transform="rotate(-90 64 64)"
             style={{ transition: 'stroke-dasharray 0.8s cubic-bezier(0.4,0,0.2,1)' }}
           />
-          <text x="64" y="60" textAnchor="middle" fontSize="28" fontWeight="700" fill="#111827" fontFamily="'DM Serif Display', serif">{score}</text>
+          <text x="64" y="60" textAnchor="middle" fontSize="28" fontWeight="700" fill="#2A1620" fontFamily="Fraunces, Georgia, serif">{score}</text>
           <text x="64" y="77" textAnchor="middle" fontSize="12" fill="#6B7280" fontFamily="Inter, sans-serif">/100</text>
         </svg>
       </div>
@@ -290,7 +290,7 @@ function ViewingPrepPanel({
   return (
     <div className="space-y-5 animate-results">
       {/* Priority questions hero */}
-      <div className="card p-5" style={{ background: 'linear-gradient(135deg, #F5F3FF 0%, #EDE9F8 100%)', borderColor: 'rgba(91,61,174,0.15)' }}>
+      <div className="card p-5" style={{ background: 'linear-gradient(135deg, #FEF5F8 0%, #FBE9F0 100%)', borderColor: 'rgba(156,47,98,0.15)' }}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-brand flex items-center justify-center">

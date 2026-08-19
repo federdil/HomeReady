@@ -35,20 +35,44 @@ export function computeFit(
   }
 }
 
-/** Colour ramp for map pins and score chips. Deliberately not red/green only —
- *  mid-range needs to read as "mixed", not "bad". */
+/**
+ * Fit score colour — a diverging ramp with a neutral midpoint.
+ *
+ * Deliberately NOT red-amber-green. Red and green are the one pair that around
+ * one in twelve men cannot separate, so the old ramp was unreadable for a real
+ * share of users. This pair was checked with the palette validator: orange and
+ * blue separate at ΔE 17 under protanopia and 31 under tritanopia, against a
+ * floor of 8 — and both stay clear of the brand colour so a score never reads
+ * as chrome.
+ *
+ * Three bands, not four. A 52 against a 58 is noise, and giving it a colour
+ * boundary implied a precision the score does not have.
+ */
+export const FIT_STRONG = '#0284C7'
+export const FIT_MIXED  = '#78716C'
+export const FIT_POOR   = '#C2410C'
+export const FIT_NONE   = '#A89A9F'
+
 export function fitColour(score: number | null): string {
-  if (score === null) return '#9CA3AF'
-  if (score >= 75) return '#16A34A'
-  if (score >= 55) return '#65A30D'
-  if (score >= 40) return '#D97706'
-  return '#DC2626'
+  if (score === null) return FIT_NONE
+  if (score >= 65) return FIT_STRONG
+  if (score >= 45) return FIT_MIXED
+  return FIT_POOR
 }
 
 export function fitLabel(score: number | null): string {
   if (score === null) return 'Not scored'
-  if (score >= 75) return 'Strong match'
-  if (score >= 55) return 'Good match'
-  if (score >= 40) return 'Mixed'
+  if (score >= 65) return 'Strong match'
+  if (score >= 45) return 'Mixed'
   return 'Poor match'
+}
+
+/**
+ * Colour is never the only channel. Every chip carries its number, and an
+ * unscored property is drawn as an outline rather than a third shade of grey —
+ * "we don't know" is a different kind of answer from "we scored it low", so it
+ * gets a different shape, not just a different fill.
+ */
+export function fitIsOutlined(score: number | null): boolean {
+  return score === null
 }

@@ -248,7 +248,7 @@ export default function OfferPage() {
 
           {/* Hero — offer numbers */}
           <div className="card p-6"
-            style={{ background: 'linear-gradient(135deg, #F5F3FF 0%, #EDE9F8 100%)', borderColor: 'rgba(91,61,174,0.15)' }}
+            style={{ background: 'linear-gradient(135deg, #FEF5F8 0%, #FBE9F0 100%)', borderColor: 'rgba(156,47,98,0.15)' }}
           >
             <div className="flex flex-wrap items-start gap-4">
               <div>
