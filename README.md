@@ -4,6 +4,8 @@
 
 [**Try it →** homeready-pied.vercel.app](https://homeready-pied.vercel.app)
 
+![Properties you are considering, on a map of London, each scored against your own priorities](docs/images/map.jpg)
+
 You have nine Rightmove tabs open. One flat is £40,000 cheaper than another and
 you genuinely cannot tell whether that is a bargain or a warning. The listing
 says *"moments from the station"* — which station, and how long does that
@@ -61,11 +63,15 @@ space or parking, and where you need to commute to. Add a workplace for each
 person, each with its own acceptable journey time. Then set how much you care
 about commute, safety, schools, value and space.
 
+![Setting your budget, requirements, workplaces and priorities](docs/images/persona.jpg)
+
 **2 — Paste property links.** Each one is scraped, enriched from public data and
 scored in about two seconds. Pins are coloured by fit and carry the score.
 Your workplaces show as separate markers. Click any property for the full
 breakdown, a plain-English verdict, and its annual running costs — or compare
 everything side by side in one table.
+
+![A property's verdict, annual running costs, price per square foot and commute times](docs/images/property.jpg)
 
 **3 — Use the tools when you need them.** A stamp duty and fees calculator, a
 listing decoder that translates estate agent language, an offer and negotiation

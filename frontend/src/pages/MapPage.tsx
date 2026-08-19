@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from 'react-leaflet'
 import L from 'leaflet'
@@ -347,7 +347,12 @@ function PropertyDetail({ property, weights, onClose }: {
 export default function MapPage() {
   const queryClient = useQueryClient()
   const [url, setUrl] = useState('')
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  // Selection lives in the URL so a property can be linked to or shared.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const selectedId = searchParams.get('property')
+  const setSelectedId = (id: string | null) => {
+    setSearchParams(id ? { property: id } : {}, { replace: true })
+  }
   const [showWeights, setShowWeights] = useState(false)
   const [localWeights, setLocalWeights] = useState<Record<DimensionKey, number> | null>(null)
 

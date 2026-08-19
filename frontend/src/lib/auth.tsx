@@ -2,7 +2,9 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase, DEV_NO_AUTH, DEV_USER_ID } from './supabase'
 
-const DEV_USER = { id: DEV_USER_ID, email: 'dev@localhost' } as User
+// Flagged anonymous so local development shows the same header a real
+// first-time visitor sees, rather than a placeholder email.
+const DEV_USER = { id: DEV_USER_ID, is_anonymous: true } as unknown as User
 
 interface AuthContextValue {
   user: User | null
