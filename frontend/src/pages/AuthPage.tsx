@@ -24,10 +24,11 @@ const FEATURES = [
 ]
 
 export default function AuthPage() {
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin')
+  const { signIn, signUp, upgradeAccount, isGuest } = useAuth()
+  // A guest arriving here wants to keep what they have, not start over.
+  const [mode, setMode] = useState<'signin' | 'signup'>(isGuest ? 'signup' : 'signin')
   const [serverError, setServerError] = useState<string | null>(null)
   const [signupDone, setSignupDone]   = useState(false)
-  const { signIn, signUp } = useAuth()
   const navigate = useNavigate()
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
@@ -39,12 +40,22 @@ export default function AuthPage() {
     if (mode === 'signin') {
       const { error } = await signIn(data.email, data.password)
       if (error) { setServerError(error); return }
-      navigate('/readiness', { replace: true })
-    } else {
-      const { error } = await signUp(data.email, data.password)
+      navigate('/', { replace: true })
+      return
+    }
+
+    if (isGuest) {
+      // Attach the email to the session they already have. Calling signUp here
+      // would mint a new user id and strand their persona and saved properties.
+      const { error } = await upgradeAccount(data.email, data.password)
       if (error) { setServerError(error); return }
       setSignupDone(true)
+      return
     }
+
+    const { error } = await signUp(data.email, data.password)
+    if (error) { setServerError(error); return }
+    setSignupDone(true)
   }
 
   return (
@@ -121,23 +132,29 @@ export default function AuthPage() {
               <div>
                 <h2 className="font-display text-xl text-ink mb-2">Check your email</h2>
                 <p className="text-sm text-ink-muted leading-relaxed">
-                  We've sent a confirmation link to your email address. Click it to verify your account, then sign in.
+                  {isGuest
+                    ? "We've sent a confirmation link. Click it to finish saving your search — everything you've added is already attached to it."
+                    : "We've sent a confirmation link to your email address. Click it to verify your account, then sign in."}
                 </p>
               </div>
-              <GhostButton onClick={() => { setSignupDone(false); setMode('signin') }} className="w-full">
-                Back to sign in
+              <GhostButton onClick={() => navigate('/')} className="w-full">
+                {isGuest ? 'Back to your properties' : 'Back to sign in'}
               </GhostButton>
             </div>
           ) : (
             <>
               <div>
                 <h2 className="font-display text-2xl text-ink mb-1">
-                  {mode === 'signin' ? 'Welcome back' : 'Create your account'}
+                  {mode === 'signin'
+                    ? 'Welcome back'
+                    : isGuest ? 'Save your search' : 'Create your account'}
                 </h2>
                 <p className="text-sm text-ink-muted">
                   {mode === 'signin'
-                    ? 'Sign in to continue your home-buying journey'
-                    : 'Start your home-buying journey for free'}
+                    ? 'Sign in to pick up where you left off'
+                    : isGuest
+                      ? 'Add an email so your profile and saved properties survive clearing your browser or moving to another device. Everything you have already added stays exactly as it is.'
+                      : 'Start looking at properties for free'}
                 </p>
               </div>
 

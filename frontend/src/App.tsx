@@ -14,9 +14,10 @@ import AuthPage from '@/pages/AuthPage'
 import HomeownerPage from '@/pages/HomeownerPage'
 import OfferPage from '@/pages/OfferPage'
 import ShortlistPage from '@/pages/ShortlistPage'
+import { PrimaryButton } from '@/components/ui'
 import {
   Home, Loader2, LogOut, User, PoundSterling, Search, FileText,
-  ClipboardCheck, Menu, X, Handshake, Map as MapIcon, SlidersHorizontal,
+  ClipboardCheck, Menu, X, Handshake, Map as MapIcon, SlidersHorizontal, Save,
 } from 'lucide-react'
 
 const queryClient = new QueryClient()
@@ -147,7 +148,7 @@ function BottomNav() {
 }
 
 function TopNav({ onMenuClick }: { onMenuClick: () => void }) {
-  const { user, signOut } = useAuth()
+  const { user, isGuest, signOut } = useAuth()
   const navigate = useNavigate()
 
   return (
@@ -169,14 +170,24 @@ function TopNav({ onMenuClick }: { onMenuClick: () => void }) {
       </div>
 
       <div className="ml-auto flex items-center gap-2">
-        {user && (
+        {isGuest ? (
+          // A guest's work lives in this browser only, so the offer to keep it
+          // is the useful control here — not a sign-out that would discard it.
+          <NavLink
+            to="/auth"
+            className="flex items-center gap-1.5 text-xs font-semibold text-brand bg-brand-light border border-brand/20 hover:bg-brand/10 transition-colors px-3 py-1.5 rounded-lg"
+          >
+            <Save className="w-3.5 h-3.5" />
+            Save your search
+          </NavLink>
+        ) : user && (
           <>
             <div className="hidden sm:flex items-center gap-2 text-xs text-ink-muted bg-surface-2 border border-border rounded-full px-3 py-1.5">
               <User className="w-3.5 h-3.5" />
               <span className="truncate max-w-[160px] font-medium">{user.email}</span>
             </div>
             <button
-              onClick={async () => { await signOut(); navigate('/auth', { replace: true }) }}
+              onClick={async () => { await signOut(); navigate('/', { replace: true }) }}
               className="flex items-center gap-1.5 text-xs text-ink-muted hover:text-ink transition-colors px-3 py-1.5 rounded-lg hover:bg-surface-2 font-medium"
               title="Sign out"
             >
@@ -203,11 +214,33 @@ function Spinner() {
   )
 }
 
-function RequireAuth({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth()
-  const location = useLocation()
+/**
+ * Nobody is sent to a login screen. A visitor with no session gets a guest one
+ * automatically, so this only waits for that to settle — and surfaces the rare
+ * case where it could not be created at all.
+ */
+function RequireSession({ children }: { children: React.ReactNode }) {
+  const { user, loading, startupError } = useAuth()
+
   if (loading) return <Spinner />
-  if (!user) return <Navigate to="/auth" state={{ from: location }} replace />
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-6">
+        <div className="max-w-sm text-center">
+          <div className="w-12 h-12 rounded-xl bg-surface-2 border border-border flex items-center justify-center mx-auto mb-4">
+            <Home className="w-5 h-5 text-ink-faint" />
+          </div>
+          <h1 className="font-display text-xl text-ink mb-2">Couldn&rsquo;t start your session</h1>
+          <p className="text-sm text-ink-muted leading-relaxed mb-5">
+            {startupError ?? 'Something went wrong reaching the server.'}
+          </p>
+          <PrimaryButton onClick={() => window.location.reload()}>Try again</PrimaryButton>
+        </div>
+      </div>
+    )
+  }
+
   return <>{children}</>
 }
 
@@ -255,7 +288,7 @@ export default function App() {
           <div className="bg-wash" aria-hidden="true" />
           <Routes>
             <Route path="/auth" element={<AuthPublic />} />
-            <Route path="/*" element={<RequireAuth><AppShell /></RequireAuth>} />
+            <Route path="/*" element={<RequireSession><AppShell /></RequireSession>} />
           </Routes>
         </AuthProvider>
       </BrowserRouter>
@@ -263,11 +296,11 @@ export default function App() {
   )
 }
 
+/** Reachable from "Save your search", never as a gate. Someone who already
+ *  has a full account has nothing to do here. */
 function AuthPublic() {
-  const { user, loading } = useAuth()
-  const location = useLocation()
-  const from = (location.state as { from?: Location })?.from?.pathname ?? '/'
+  const { loading, isGuest, user } = useAuth()
   if (loading) return <Spinner />
-  if (user) return <Navigate to={from} replace />
+  if (user && !isGuest) return <Navigate to="/" replace />
   return <AuthPage />
 }
