@@ -3,6 +3,7 @@ import {
   BrowserRouter, Routes, Route, Navigate, NavLink, Link, useLocation, useNavigate,
 } from 'react-router-dom'
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
+import { Analytics } from '@vercel/analytics/react'
 import { getPersona } from '@/lib/api'
 import { AuthProvider, useAuth } from '@/lib/auth'
 import PersonaPage from '@/pages/PersonaPage'
@@ -283,6 +284,7 @@ export default function App() {
             <Route path="/auth" element={<AuthPublic />} />
             <Route path="/*" element={<RequireSession><AppShell /></RequireSession>} />
           </Routes>
+          <Analytics />
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>
