@@ -1,20 +1,55 @@
 # HomeReady
 
-**An honest second opinion on the flats and houses you're considering.**
+**Buying your first home in London is a research project nobody trained you for.**
 
-You tell HomeReady who you are and what matters to you. Then you paste property
-links as you find them, and each one lands on a map of London scored against
-*your* priorities — with a real door-to-door commute time, recorded crime in the
-area, what neighbours actually paid, and what the place will cost you every year
-to own.
+[**Try it →** homeready-pied.vercel.app](https://homeready-pied.vercel.app)
 
-There is no universal "good area". A flat that suits a couple optimising a
-commute is often wrong for a family optimising schools and space, so HomeReady
-never gives a property a single objective rating. It gives it a rating *for you*,
-and shows you the weights behind it.
+You have nine Rightmove tabs open. One flat is £40,000 cheaper than another and
+you genuinely cannot tell whether that is a bargain or a warning. The listing
+says *"moments from the station"* — which station, and how long does that
+actually take to your office on a Tuesday morning? The service charge isn't
+mentioned. Neither is the council tax band. You started a spreadsheet three
+weekends ago and you've already lost track of which places you liked and why.
 
-> **Scope:** London only. Journey planning uses TfL, which does not cover the
-> rest of the UK.
+And underneath all of it:
+
+- **The asking price tells you nothing.** Whether £550,000 is fair depends on
+  what the flats around it actually sold for — which isn't on the listing.
+- **The price is not the cost.** Stamp duty, service charge, ground rent,
+  council tax. A cheaper flat carrying a £5,000 annual service charge is the
+  more expensive purchase, and most people find that out far too late.
+- **Listings are written to sell.** "Deceptively spacious", "well presented",
+  "would suit an investor" — every phrase is doing work, and none of it for you.
+- **"It's a good area" is useless advice.** Good for whom? A 25-minute commute
+  is everything to one buyer and irrelevant to another.
+- **Nobody in the room works for you.** The estate agent works for the seller.
+- **You can't hold it in your head.** Eight properties across six dimensions is
+  forty-eight moving facts, and it changes every time a new listing lands.
+
+So you end up making the largest financial decision of your life at speed, in
+competition with other buyers, on information chosen by the person selling to you.
+
+---
+
+## What HomeReady does
+
+Tell it who you are and what actually matters to you. Then paste property links
+as you find them. Each one lands on a map of London with a real door-to-door
+commute time to your workplace, recorded crime in the area, what neighbours
+actually paid, what the place costs every year to own — and a score built from
+*your* priorities, not someone else's.
+
+It won't tell you a property is good. It will tell you what it is, what it will
+cost you, and where it falls short of what you asked for — including, plainly,
+the things it doesn't know.
+
+**There is no universal "good area".** A flat that suits a couple optimising a
+commute is often wrong for a family optimising schools and space. So HomeReady
+never gives a property one objective rating. It rates it for you, and shows you
+the weights behind the number so you can argue with them.
+
+> **Scope:** London only for now. Door-to-door journey times come from TfL,
+> which doesn't cover the rest of the UK.
 
 ---
 
@@ -150,107 +185,10 @@ homeready/
 
 ---
 
-## Running locally
+## Development
 
-### Prerequisites
-
-- Python 3.12
-- Node.js 18+
-- PostgreSQL 14+
-- An [Anthropic API key](https://console.anthropic.com)
-
-### 1. Database
-
-```bash
-createdb homeready
-```
-
-### 2. Backend
-
-```bash
-cd backend && python3.12 -m venv venv && source venv/bin/activate && pip install -r requirements.txt
-```
-
-Create `backend/.env`:
-
-```
-ANTHROPIC_API_KEY=sk-ant-...
-DATABASE_URL=postgresql+asyncpg://<your-username>@localhost:5432/homeready
-ENVIRONMENT=development
-CORS_ORIGINS=http://localhost:5173
-DEV_NO_AUTH=true
-```
-
-`DEV_NO_AUTH` lets you run without a Supabase project: every request is
-attributed to one fixed local user, so your profile and properties persist
-across restarts. It is ignored unless `ENVIRONMENT` is `development`, and
-defaults to off. **Never set it in a deployed environment.** To use real
-accounts instead, drop the flag and add `SUPABASE_URL` and
-`SUPABASE_SERVICE_KEY`.
-
-Apply migrations and load the schools dataset — a ~65 MB download that populates
-around 26,000 open schools, needed before the schools dimension can score:
-
-```bash
-alembic upgrade head && python -m scripts.load_schools
-```
-
-Start it:
-
-```bash
-uvicorn main:app --reload --port 8000
-```
-
-### 3. Frontend
-
-```bash
-cd frontend && npm install
-```
-
-Create `frontend/.env.local`:
-
-```
-VITE_API_URL=http://localhost:8000
-VITE_DEV_NO_AUTH=true
-```
-
-If you are using Supabase accounts, drop `VITE_DEV_NO_AUTH` and add
-`VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` instead.
-
-```bash
-npm run dev
-```
-
-Open http://localhost:5173 and fill in your profile.
-
----
-
-## Tests
-
-```bash
-cd backend && python -m pytest tests/ -q
-```
-
-The suite covers the rate tables at every band boundary, the rule that missing
-data is excluded rather than imputed, requirement matching including negation,
-and the listing parser's handling of withdrawn and malformed listings.
-
-```bash
-cd frontend && npx tsc --noEmit
-```
-
----
-
-## Deployment
-
-- **Backend** — [Railway](https://railway.app), auto-deploying from `main`. Set
-  every `backend/.env` variable in the dashboard, leave `DEV_NO_AUTH` unset, and
-  run `scripts/load_schools.py` on a schedule to keep the schools data current.
-- **Frontend** — [Vercel](https://vercel.com), via `npx vercel --prod` from
-  `frontend/`. Set `VITE_API_URL`, `VITE_SUPABASE_URL` and
-  `VITE_SUPABASE_ANON_KEY`, and leave `VITE_DEV_NO_AUTH` unset.
-
-Add your deployed frontend origin to `CORS_ORIGINS` on the backend.
+Setup, tests and deployment are in
+[`docs/development.md`](docs/development.md).
 
 ---
 
