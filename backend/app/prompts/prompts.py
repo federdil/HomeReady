@@ -86,8 +86,7 @@ Return a JSON object with this exact structure:
     "explanation": "<plain English explanation of the leasehold situation>"
   }},
   "red_flags": ["<genuine concerns a buyer should investigate>"],
-  "green_flags": ["<genuinely positive aspects that appear credible>"],
-  "viewing_questions": ["<specific questions to ask the estate agent at viewing, tailored to this property>"]
+  "green_flags": ["<genuinely positive aspects that appear credible>"]
 }}
 
 Be honest and direct. Common euphemisms to watch for: 'cosy/compact' = small, 'investment opportunity' = needs work, 'vibrant area' = noisy, 'moments from' = further than it sounds, 'well-presented' = recently decorated to hide issues."""

@@ -79,7 +79,6 @@ class ListingDecoderResponse(BaseModel):
     leasehold: LeaseholdFlag
     red_flags: list[str]
     green_flags: list[str]
-    viewing_questions: list[str]
 
 
 # ── Feature: Document Explainer ───────────────────────────────────────────

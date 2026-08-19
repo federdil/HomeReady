@@ -53,7 +53,6 @@ export interface ListingDecoderResult {
   leasehold: LeaseholdFlag
   red_flags: string[]
   green_flags: string[]
-  viewing_questions: string[]
 }
 
 // ── Document Explainer ─────────────────────────────────────────────────────

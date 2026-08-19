@@ -739,22 +739,26 @@ export default function EvaluatePage() {
             </SolidCard>
           )}
 
-          {/* Viewing questions teaser → tab CTA */}
-          {result.viewing_questions.length > 0 && (
-            <button
-              onClick={() => setTab('viewing')}
-              className="w-full flex items-center gap-4 p-4 rounded-xl bg-brand-light border border-brand/20 hover:bg-brand/10 transition-colors text-left group"
-            >
-              <div className="w-9 h-9 rounded-xl bg-brand flex items-center justify-center shrink-0">
-                <HelpCircle className="w-4 h-4 text-white" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-brand">Prepare for your viewing</p>
-                <p className="text-xs text-ink-muted mt-0.5">{result.viewing_questions.length} questions ready — get the full categorised set in Viewing Prep</p>
-              </div>
-              <ArrowRight className="w-4 h-4 text-brand shrink-0" />
-            </button>
-          )}
+          {/* Viewing questions → tab CTA. Questions are written in Viewing
+              Prep, where the red flags found above are used as input. */}
+          <button
+            onClick={() => setTab('viewing')}
+            className="w-full flex items-center gap-4 p-4 rounded-xl bg-brand-light border border-brand/20 hover:bg-brand/10 transition-colors text-left group"
+          >
+            <div className="w-9 h-9 rounded-xl bg-brand flex items-center justify-center shrink-0">
+              <HelpCircle className="w-4 h-4 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-brand">Prepare for your viewing</p>
+              <p className="text-xs text-ink-muted mt-0.5">
+                Get a categorised question list built around the{' '}
+                {result.red_flags.length > 0
+                  ? `${result.red_flags.length} red flag${result.red_flags.length === 1 ? '' : 's'} found above`
+                  : 'findings above'}
+              </p>
+            </div>
+            <ArrowRight className="w-4 h-4 text-brand shrink-0" />
+          </button>
 
           {/* Continue your research */}
           <div>
