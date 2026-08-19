@@ -126,16 +126,16 @@ function ContextCTAs({ result, fetched }: { result: ListingDecoderResult; fetche
   return (
     <div className="grid sm:grid-cols-2 gap-3">
       <button
-        onClick={() => navigate(`/evaluate/neighbourhood${postcode ? `?postcode=${encodeURIComponent(postcode)}` : ''}`)}
+        onClick={() => navigate('/map')}
         className="flex items-center gap-4 p-4 rounded-xl bg-surface-2 border border-border hover:border-brand/30 hover:bg-brand-light/30 transition-all text-left group"
       >
         <div className="w-10 h-10 rounded-xl bg-brand-light flex items-center justify-center shrink-0 group-hover:bg-brand group-hover:text-white transition-colors">
           <MapPin className="w-4 h-4 text-brand group-hover:text-white transition-colors" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-ink">Check the neighbourhood</p>
+          <p className="text-sm font-semibold text-ink">See it on your map</p>
           <p className="text-xs text-ink-muted mt-0.5 truncate">
-            {postcode ? `Auto-filled: ${postcode}` : 'Transport, schools & flood risk'}
+            {postcode ? `Scored against your profile: ${postcode}` : 'Commute, safety, schools and value'}
           </p>
         </div>
         <ArrowRight className="w-4 h-4 text-ink-faint group-hover:text-brand transition-colors shrink-0" />
@@ -188,13 +188,13 @@ function SubNav({ tab, setTab, hasResult }: { tab: EvaluateTab; setTab: (t: Eval
         Viewing Prep
         {!hasResult && <span className="text-[10px] font-medium opacity-60">decode first</span>}
       </button>
-      <NavLink to="/evaluate/neighbourhood"
+      <NavLink to="/map"
         className={({ isActive }) => cn(
           'px-4 py-2 rounded-xl transition-colors',
           isActive ? 'bg-brand text-white shadow-sm' : 'bg-surface-2 border border-border text-ink-muted hover:text-ink hover:bg-surface-3'
         )}
       >
-        Neighbourhood
+        Map
       </NavLink>
       <NavLink to="/shortlist"
         className={({ isActive }) => cn(

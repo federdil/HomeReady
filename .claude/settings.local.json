@@ -40,7 +40,28 @@
       "Bash(sed -i '' \"s|onSuccess: \\(data\\) => { setResult\\(data\\); markStageProgress\\('readiness', 'complete'\\) },|onSuccess: \\(data\\) => { setResult\\(data\\); markStage\\('readiness', 'complete'\\) },|\" /Users/federicodilucia/Desktop/homeready/frontend/src/pages/ReadinessPage.tsx)",
       "Bash(sed -i '' \"s|const \\\\[result, setResult\\\\] = useState<ListingDecoderResult | null>\\(null\\)|const [result, setResult] = useState<ListingDecoderResult | null>\\(null\\)\\\\n  const markStage = useMarkStage\\(\\)|\" /Users/federicodilucia/Desktop/homeready/frontend/src/pages/EvaluatePage.tsx)",
       "Bash(sed -i '' \"s|onSuccess: \\(data\\) => { setResult\\(data\\); markStageProgress\\('evaluation', 'in_progress'\\) },|onSuccess: \\(data\\) => { setResult\\(data\\); markStage\\('evaluation', 'in_progress'\\) },|\" /Users/federicodilucia/Desktop/homeready/frontend/src/pages/EvaluatePage.tsx)",
-      "Bash(sed -i '' \"s|const \\\\[result, setResult\\\\] = useState<NeighbourhoodResult | null>\\(null\\)|const [result, setResult] = useState<NeighbourhoodResult | null>\\(null\\)\\\\n  const markStage = useMarkStage\\(\\)|\" /Users/federicodilucia/Desktop/homeready/frontend/src/pages/NeighbourhoodPage.tsx)"
+      "Bash(sed -i '' \"s|const \\\\[result, setResult\\\\] = useState<NeighbourhoodResult | null>\\(null\\)|const [result, setResult] = useState<NeighbourhoodResult | null>\\(null\\)\\\\n  const markStage = useMarkStage\\(\\)|\" /Users/federicodilucia/Desktop/homeready/frontend/src/pages/NeighbourhoodPage.tsx)",
+      "Bash(python3 -c ' *)",
+      "WebFetch(domain:scrapfly.io)",
+      "Bash(npx railway *)",
+      "Read(//Users/federicodilucia/Library/Application Support/Claude/local-agent-mode-sessions/skills-plugin/b44b6a30-0f0b-4c15-82fb-fe71673ba0b5/6514f1c6-c8d5-4b46-9979-73391f0a13cf/skills/docx/**)",
+      "Bash(extract-text \"/Users/federicodilucia/Desktop/homeready/HomeReady_PRD_v1.1.docx\")",
+      "Bash(python3 '/Users/federicodilucia/Library/Application Support/Claude/local-agent-mode-sessions/skills-plugin/b44b6a30-0f0b-4c15-82fb-fe71673ba0b5/6514f1c6-c8d5-4b46-9979-73391f0a13cf/skills/docx/scripts/office/unpack.py' /Users/federicodilucia/Desktop/homeready/HomeReady_PRD_v1.1.docx /tmp/prd_unpacked/)",
+      "Bash(python3)",
+      "Bash(find /Users/federicodilucia/Desktop/homeready_revamp -type f | head -50)",
+      "Bash(npm run *)",
+      "mcp__Claude_Preview__preview_start",
+      "mcp__Claude_in_Chrome__navigate",
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:59789)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5174)",
+      "Bash(gh repo *)",
+      "Bash(npx vercel *)",
+      "WebFetch(domain:rapidapi.com)",
+      "Bash(pandoc \"/Users/federicodilucia/Desktop/homeready/HomeReady_PRD_v1.1.docx\" -t markdown)",
+      "Bash(python '/Users/federicodilucia/Library/Application Support/Claude/local-agent-mode-sessions/skills-plugin/b44b6a30-0f0b-4c15-82fb-fe71673ba0b5/6514f1c6-c8d5-4b46-9979-73391f0a13cf/skills/docx/scripts/office/unpack.py' /Users/federicodilucia/Desktop/homeready/HomeReady_PRD_v1.1.docx /tmp/prd_unpacked/)",
+      "Bash(pip3 install *)",
+      "Bash(python3 \"/Users/federicodilucia/Library/Application Support/Claude/local-agent-mode-sessions/skills-plugin/b44b6a30-0f0b-4c15-82fb-fe71673ba0b5/6514f1c6-c8d5-4b46-9979-73391f0a13cf/skills/docx/scripts/office/unpack.py\" \"/Users/federicodilucia/Desktop/homeready/HomeReady_PRD_v1.1.docx\" /tmp/prd_unpacked/)"
     ]
   }
 }

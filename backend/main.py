@@ -7,6 +7,7 @@ from app.core.config import get_settings
 from app.api.routes.features import router as features_router
 from app.api.routes.auth import router as auth_router
 from app.api.routes.checklist import router as checklist_router
+from app.api.routes.search import router as search_router
 import structlog
 
 log = structlog.get_logger()
@@ -32,6 +33,7 @@ app.add_middleware(
 app.include_router(features_router)
 app.include_router(auth_router)
 app.include_router(checklist_router)
+app.include_router(search_router)
 
 
 @app.on_event("startup")

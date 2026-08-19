@@ -64,8 +64,8 @@ function PropertyCard({ prop, onDelete }: { prop: SavedProperty; onDelete: () =>
     navigate(`/offer?${params.toString()}`)
   }
 
-  const handleNeighbourhoodClick = () => {
-    navigate(`/evaluate/neighbourhood${prop.postcode ? `?postcode=${encodeURIComponent(prop.postcode)}` : ''}`)
+  const handleMapClick = () => {
+    navigate('/map')
   }
 
   return (
@@ -206,10 +206,10 @@ function PropertyCard({ prop, onDelete }: { prop: SavedProperty; onDelete: () =>
       {/* CTAs */}
       <div className="flex items-stretch divide-x divide-border">
         <button
-          onClick={handleNeighbourhoodClick}
+          onClick={handleMapClick}
           className="flex-1 flex items-center justify-center gap-1.5 text-xs text-ink-muted hover:text-brand hover:bg-brand-light py-2.5 transition-colors font-semibold"
         >
-          <MapPin className="w-3.5 h-3.5" /> Neighbourhood
+          <MapPin className="w-3.5 h-3.5" /> Map
         </button>
         <button
           onClick={handleOfferClick}

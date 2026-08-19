@@ -658,6 +658,19 @@ const DAILY_LOG = [
     ]
   },
   {
+    date: '2026-06-29 (build)',
+    items: [
+      { type: 'frontend', text: 'UI revamp deployed to Vercel — split-panel auth page (purple gradient left panel), clean white card system, DM Serif Display headings, brand purple active nav with left border accent, opaque inputs, no glassmorphism on content cards' },
+      { type: 'backend', text: 'f44: Neighbourhood agent SSE streaming — POST /evaluate/neighbourhood/stream returns text/event-stream; async generator yields tool_start / tool_done / complete events; Claude drives tool selection autonomously' },
+      { type: 'frontend', text: 'f44: NeighbourhoodPage streaming UI — fetch() + ReadableStream replaces fake timer; AgentThinking shows live tool progress with TOOL_LABELS map; React state machine (isPending, toolSteps, streamError)' },
+      { type: 'fix',     text: 'Fixed "AI returned invalid JSON for neighbourhood_agent" — _parse_json() now falls back to extracting first { to last } when Claude adds prose preamble before JSON' },
+      { type: 'frontend', text: 'My Shortlist added as standalone sidebar nav item (Bookmark icon, glass-card wrapper, brand active state) — always visible between Homeowner Mode and tip card' },
+      { type: 'backend', text: 'f45+f34: Viewing Question Generator — POST /evaluate/questions; VIEWING_QUESTIONS_SYSTEM prompt; returns priority_questions (3 deal-breakers) + 5 categories (Structural, Legal, Running Costs, Practical, Seller Motivation)' },
+      { type: 'frontend', text: 'f45+f34: Viewing Prep tab on EvaluatePage — state-based tab (not a route); ViewingPrepPanel with priority questions hero card (brand gradient), category SolidCards, Copy all clipboard button, Regenerate link' },
+      { type: 'fix',     text: 'Fixed 404 on POST /evaluate/questions — Python import order bug: ViewingQuestionsRequest/Response and generate_viewing_questions were imported at line 304, after the route decorator at line 288. Moved all imports to top-level block.' },
+    ]
+  },
+  {
     date: '2026-06-28',
     items: [
       { type: 'frontend', text: 'Mobile-responsive layout — bottom nav bar (4 primary stages), hamburger drawer with full journey progress, sidebar hidden on mobile' },
@@ -676,14 +689,6 @@ const DAILY_LOG = [
 ];
 
 const NEXT_STEPS = [
-  {
-    label: '⚡ Neighbourhood agent streaming UI (f44)',
-    sub: 'Market research flags 8–15s latency as a known UX risk. Stream tool-call progress to the client so users see live updates while the agent runs rather than a blank wait.',
-  },
-  {
-    label: '🔍 Viewing question generator (f45 + f34)',
-    sub: 'Backend: POST /evaluate/questions from decoded listing. Frontend: third tab in Evaluate page. Market research confirms no competitor generates property-specific viewing questions.',
-  },
   {
     label: '📊 Comparable price analysis (f30/f31)',
     sub: 'Land Registry sold prices integration — surface comparable sales in the Offer Strategy page. Market research confirms this is partially served; HomeReady can add the plain-English "is this fair?" layer competitors lack.',

@@ -16,14 +16,12 @@ from app.models.schemas import (
     FetchListingRequest, FetchListingResponse,
     SavePropertyRequest, SavedPropertyResponse, UpdatePropertyNotesRequest,
     ViewingQuestionsRequest, ViewingQuestionsResponse,
-    NeighbourhoodRequest, NeighbourhoodResponse,
 )
 from app.services.features import (
     calculate_costs, decode_listing,
     explain_document, interpret_survey,
     get_offer_strategy,
     generate_viewing_questions,
-    run_neighbourhood_agent, stream_neighbourhood_agent,
 )
 from app.services.rightmove import fetch_listing, RightmoveError
 import pypdf
@@ -301,36 +299,3 @@ async def get_viewing_questions(req: ViewingQuestionsRequest):
 @router.get("/health")
 async def health():
     return {"status": "ok", "service": "HomeReady API"}
-
-
-# ── Stage 2: Neighbourhood Intelligence Agent ──────────────────────────────
-from fastapi.responses import StreamingResponse
-import json
-
-@router.post("/evaluate/neighbourhood", response_model=NeighbourhoodResponse)
-async def get_neighbourhood_briefing(req: NeighbourhoodRequest):
-    try:
-        return await run_neighbourhood_agent(req)
-    except Exception as e:
-        _handle_claude_error(e)
-
-
-@router.post("/evaluate/neighbourhood/stream")
-async def stream_neighbourhood_briefing(req: NeighbourhoodRequest):
-    """SSE endpoint — streams tool_start / tool_done / complete events."""
-    async def generate():
-        try:
-            async for event in stream_neighbourhood_agent(req):
-                yield f"data: {json.dumps(event)}\n\n"
-        except Exception as e:
-            err = {"event": "error", "message": str(e)}
-            yield f"data: {json.dumps(err)}\n\n"
-
-    return StreamingResponse(
-        generate(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",
-        },
-    )

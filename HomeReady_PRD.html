@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HomeReady — Product Requirements Document</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --brand: #5B3DAE;
+    --brand-light: #f0ebff;
+    --brand-border: #d0bcff;
+    --green: #16a34a;
+    --green-light: #f0fdf4;
+    --green-border: #bbf7d0;
+    --amber: #d97706;
+    --amber-light: #fffbeb;
+    --amber-border: #fde68a;
+    --red: #dc2626;
+    --red-light: #fef2f2;
+    --red-border: #fecaca;
+    --gray-50: #f8fafc;
+    --gray-100: #f1f5f9;
+    --gray-200: #e2e8f0;
+    --gray-400: #94a3b8;
+    --gray-600: #475569;
+    --navy: #0f172a;
+    --text: #0f172a;
+    --text-muted: #64748b;
+    --surface: #ffffff;
+    --border: #e2e8f0;
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --brand: #a78bfa;
+      --brand-light: #1e1340;
+      --brand-border: #4c1d95;
+      --green-light: #052e16;
+      --green-border: #166534;
+      --amber-light: #1c1108;
+      --amber-border: #92400e;
+      --red-light: #1c0a0a;
+      --red-border: #991b1b;
+      --gray-50: #0f172a;
+      --gray-100: #1e293b;
+      --gray-200: #334155;
+      --gray-400: #64748b;
+      --gray-600: #94a3b8;
+      --navy: #0f172a;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --surface: #1e293b;
+      --border: #334155;
+    }
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--gray-50);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.7;
+  }
+
+  header {
+    background: var(--navy);
+    padding: 20px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  header .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: white;
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  header .logo-icon {
+    background: var(--brand);
+    border-radius: 8px;
+    width: 34px; height: 34px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+
+  header .meta {
+    color: #94a3b8;
+    font-size: 13px;
+    text-align: right;
+    line-height: 1.5;
+  }
+
+  .layout {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 40px 24px;
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 32px;
+    align-items: start;
+  }
+
+  /* TOC Sidebar */
+  .toc {
+    position: sticky;
+    top: 80px;
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+  }
+
+  .toc h3 {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+
+  .toc a {
+    display: block;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 13px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    margin-bottom: 2px;
+    transition: all 0.15s;
+  }
+
+  .toc a:hover { background: var(--gray-100); color: var(--text); }
+  .toc a.active { background: var(--brand-light); color: var(--brand); font-weight: 600; }
+
+  /* Main content */
+  .content { min-width: 0; }
+
+  .section {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 28px 32px;
+    margin-bottom: 20px;
+  }
+
+  .section-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--brand);
+    margin-bottom: 6px;
+  }
+
+  h2 {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 16px;
+  }
+
+  h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 20px 0 8px;
+  }
+
+  h3:first-child { margin-top: 0; }
+
+  p { color: var(--text); margin-bottom: 12px; }
+  p:last-child { margin-bottom: 0; }
+
+  /* Tables */
+  .table-wrap { overflow-x: auto; margin: 12px 0; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  thead th {
+    background: var(--gray-100);
+    text-align: left;
+    padding: 8px 12px;
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+  }
+
+  tbody td {
+    padding: 9px 12px;
+    border-bottom: 0.5px solid var(--border);
+    vertical-align: top;
+    line-height: 1.5;
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: var(--gray-50); }
+
+  .stage-label {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 4px;
+    white-space: nowrap;
+    background: var(--brand-light);
+    color: var(--brand);
+  }
+
+  /* Priority badges */
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 4px;
+  }
+  .badge-p0 { background: var(--red-light); color: var(--red); border: 1px solid var(--red-border); }
+  .badge-p1 { background: var(--amber-light); color: var(--amber); border: 1px solid var(--amber-border); }
+  .badge-p2 { background: var(--gray-100); color: var(--gray-600); border: 1px solid var(--gray-200); }
+  .badge-done { background: var(--green-light); color: var(--green); border: 1px solid var(--green-border); }
+
+  /* Problem cards */
+  .problem-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .problem-card {
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+
+  .problem-id {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+  }
+
+  .problem-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  .problem-body {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  /* Goal lists */
+  .goal-list { list-style: none; margin: 0; }
+  .goal-list li {
+    display: flex;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 0.5px solid var(--border);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .goal-list li:last-child { border-bottom: none; }
+  .goal-id {
+    flex-shrink: 0;
+    font-weight: 700;
+    color: var(--brand);
+    font-size: 12px;
+    width: 44px;
+    padding-top: 1px;
+  }
+
+  /* Metric cards */
+  .metric-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  .metric-card {
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+
+  .metric-name { font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
+  .metric-target { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .metric-window { font-size: 12px; color: var(--text-muted); }
+  .metric-type { font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 8px; }
+  .metric-leading { background: var(--brand-light); color: var(--brand); }
+  .metric-lagging { background: var(--gray-100); color: var(--gray-600); }
+
+  /* Phases */
+  .phase-block {
+    border-left: 3px solid var(--brand);
+    padding-left: 16px;
+    margin-bottom: 20px;
+  }
+  .phase-block:last-child { margin-bottom: 0; }
+  .phase-label {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--brand);
+    margin-bottom: 4px;
+  }
+  .phase-title { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+  .phase-list { list-style: none; }
+  .phase-list li {
+    font-size: 13px;
+    color: var(--text-muted);
+    padding: 3px 0;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .phase-list li::before { content: '→'; color: var(--brand); flex-shrink: 0; }
+
+  /* Questions */
+  .question-block {
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 8px;
+  }
+  .question-block:last-child { margin-bottom: 0; }
+  .question-tag {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 4px;
+    margin-bottom: 6px;
+    display: inline-block;
+  }
+  .q-legal { background: var(--red-light); color: var(--red); }
+  .q-eng { background: var(--brand-light); color: var(--brand); }
+  .q-design { background: var(--amber-light); color: var(--amber); }
+  .q-product { background: var(--green-light); color: var(--green); }
+  .question-text { font-size: 13px; color: var(--text); line-height: 1.5; }
+
+  strong { font-weight: 600; }
+  code { background: var(--gray-100); padding: 1px 5px; border-radius: 4px; font-size: 12px; font-family: 'SF Mono', monospace; }
+
+  .nongoal-list { list-style: none; }
+  .nongoal-list li {
+    display: flex;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 0.5px solid var(--border);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .nongoal-list li:last-child { border-bottom: none; }
+  .nongoal-list li::before { content: '✗'; color: var(--red); flex-shrink: 0; font-weight: 700; }
+
+  @media (max-width: 768px) {
+    .layout { grid-template-columns: 1fr; }
+    .toc { position: static; }
+    .problem-grid { grid-template-columns: 1fr; }
+    .metric-grid { grid-template-columns: 1fr 1fr; }
+    header { padding: 16px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🏠</div>
+    HomeReady — PRD
+  </div>
+  <div class="meta">
+    Version 1.1 &nbsp;·&nbsp; June 2026<br>
+    Status: Active Build
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- Sidebar TOC -->
+  <nav class="toc">
+    <h3>Contents</h3>
+    <a href="#summary">1. Executive Summary</a>
+    <a href="#problems">2. Problem Statements</a>
+    <a href="#goals">3. Goals</a>
+    <a href="#nongoals">4. Non-Goals</a>
+    <a href="#requirements">5. Requirements</a>
+    <a href="#metrics">6. Success Metrics</a>
+    <a href="#questions">7. Open Questions</a>
+    <a href="#phasing">8. Phasing</a>
+    <a href="#tech">9. Technical Approach</a>
+  </nav>
+
+  <!-- Main content -->
+  <main class="content">
+
+    <!-- 1. Executive Summary -->
+    <section class="section" id="summary">
+      <div class="section-title">Section 1</div>
+      <h2>Executive Summary</h2>
+      <p>Buying a first home in the UK is one of the most financially consequential decisions a person will make — yet buyers navigate a fragmented, opaque, jargon-heavy process with almost no dedicated guidance. The average first-time buyer takes 12–18 months from initial research to completion and routinely encounters costly surprises at every stage: hidden fees, unreadable legal documents, and a conveyancing process that disappears into a black hole for months.</p>
+      <p><strong>HomeReady</strong> is an AI-powered web application that acts as a knowledgeable friend throughout the entire first-time buyer journey — from initial affordability checks through to post-completion admin. It surfaces the right information at the right moment, translates complex documents into plain English, and gives buyers the confidence to make decisions without feeling lost or exploited.</p>
+      <p>There are approximately 400,000 first-time buyers in the UK each year (341K in 2024, up 19%). No single product owns the end-to-end journey. Existing tools (Rightmove, MoneyHelper, Which?) address individual moments but do not connect them into a coherent, personalised experience. The closest AI competitor (Jitty, launched March 2026) is still search and discovery only — HomeReady must own Stages 3–6 before they expand.</p>
+    </section>
+
+    <!-- 2. Problem Statements -->
+    <section class="section" id="problems">
+      <div class="section-title">Section 2</div>
+      <h2>Problem Statements</h2>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Stage</th>
+              <th>Name</th>
+              <th>Core Problem</th>
+              <th>AI Capability</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><span class="stage-label">Stage 1</span></td><td>Financial Readiness</td><td>Hidden costs and mortgage opacity</td><td>Cost calculator, affordability modelling</td></tr>
+            <tr><td><span class="stage-label">Stage 2</span></td><td>Property Evaluation</td><td>Misleading listings, leasehold traps, scattered neighbourhood data</td><td>Listing decoder, risk scanner, neighbourhood briefing</td></tr>
+            <tr><td><span class="stage-label">Stage 3</span></td><td>Offer &amp; Negotiation</td><td>Price fairness unknown, negotiation intimidating</td><td>Comparable analysis, negotiation coach</td></tr>
+            <tr><td><span class="stage-label">Stage 4</span></td><td>Legal &amp; Survey</td><td>Process black hole, unreadable documents, survey panic</td><td>Document explainer, survey interpreter</td></tr>
+            <tr><td><span class="stage-label">Stage 5</span></td><td>Exchange &amp; Completion</td><td>Chain opacity, exchange/completion confusion</td><td>Chain health monitor, completion checklist</td></tr>
+            <tr><td><span class="stage-label">Stage 6</span></td><td>Post-Completion</td><td>Admin gaps, no long-term ownership framework</td><td>Admin tracker, remortgage planner</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Stage 1 — Financial Readiness</h3>
+      <div class="problem-grid">
+        <div class="problem-card">
+          <div class="problem-id">PS-01</div>
+          <div class="problem-title">The true cost of buying is invisible</div>
+          <div class="problem-body">Buyers anchor on asking price and underestimate total acquisition cost by 10–15%. Stamp duty, solicitor fees, survey, broker, and moving costs are never presented together. The surprise typically hits at offer stage — when walking away is emotionally costly.</div>
+        </div>
+        <div class="problem-card">
+          <div class="problem-id">PS-02</div>
+          <div class="problem-title">Mortgage affordability is a black box</div>
+          <div class="problem-body">Buyers rely on rough rules of thumb (4.5× salary) without understanding how deposit size, credit history, or employment type shifts eligibility. Many begin searches outside their actual budget, wasting months and risking credit score damage from multiple hard searches.</div>
+        </div>
+      </div>
+
+      <h3>Stage 2 — Property Evaluation</h3>
+      <div class="problem-grid">
+        <div class="problem-card">
+          <div class="problem-id">PS-03</div>
+          <div class="problem-title">Listing language obscures rather than informs</div>
+          <div class="problem-body">Estate agent listings are written to sell, not to inform. Euphemisms ("cosy", "investment opportunity", "vibrant area") consistently mislead. First-time buyers are most vulnerable, having no prior experience to calibrate against.</div>
+        </div>
+        <div class="problem-card">
+          <div class="problem-id">PS-04</div>
+          <div class="problem-title">Leasehold risk is a hidden trap</div>
+          <div class="problem-body">Short leases, high service charges, and ground rent clauses can make a property expensive to own and difficult to sell. Most buyers don't know what to look for and discover problems only after instructing a solicitor — when walking away is costly.</div>
+        </div>
+        <div class="problem-card">
+          <div class="problem-id">PS-05</div>
+          <div class="problem-title">Neighbourhood fit is assessed on gut feel</div>
+          <div class="problem-body">Commute time, noise, school quality, flood risk, and planned developments all affect liveability and resale value — but this data is scattered across dozens of sources and never synthesised per property.</div>
+        </div>
+      </div>
+
+      <h3>Stage 3 — Offer &amp; Negotiation</h3>
+      <div class="problem-grid">
+        <div class="problem-card">
+          <div class="problem-id">PS-06</div>
+          <div class="problem-title">Buyers don't know if the asking price is fair</div>
+          <div class="problem-body">Without comparable sales data in plain English, buyers either overpay out of fear or underbid unnecessarily. Overpaying by £5,000–£30,000 is common; underbidding loses the property entirely.</div>
+        </div>
+        <div class="problem-card">
+          <div class="problem-id">PS-07</div>
+          <div class="problem-title">Negotiation feels intimidating and improvised</div>
+          <div class="problem-body">Most first-time buyers have never negotiated a large purchase. Estate agents, who work for the seller, are the primary source of advice — a fundamental conflict of interest.</div>
+        </div>
+      </div>
+
+      <h3>Stage 4 — Legal &amp; Survey</h3>
+      <div class="problem-grid">
+        <div class="problem-card">
+          <div class="problem-id">PS-08</div>
+          <div class="problem-title">Conveyancing is a black hole</div>
+          <div class="problem-body">After offer acceptance, buyers enter a 3–6 month process with almost no proactive visibility. They don't know what is happening, what is blocking progress, or what actions they should be taking.</div>
+        </div>
+        <div class="problem-card">
+          <div class="problem-id">PS-09</div>
+          <div class="problem-title">Legal documents are written for lawyers</div>
+          <div class="problem-body">Draft contracts, title registers, and search results are dense legal documents. Buyers receive these and must either trust their solicitor entirely or pay expensive hourly rates for explanations.</div>
+        </div>
+        <div class="problem-card">
+          <div class="problem-id">PS-10</div>
+          <div class="problem-title">Survey results cause disproportionate panic</div>
+          <div class="problem-body">Without context, buyers either panic and pull out unnecessarily, or dismiss serious structural issues they should renegotiate on. There is no plain-English layer to help them interpret findings proportionally.</div>
+        </div>
+      </div>
+
+      <h3>Stage 5 — Exchange &amp; Completion</h3>
+      <div class="problem-grid">
+        <div class="problem-card">
+          <div class="problem-id">PS-11</div>
+          <div class="problem-title">The chain is opaque and fragile</div>
+          <div class="problem-body">Buyers have no visibility into chain health. Chain breaks are the single biggest cause of wasted time and money — costing buyers thousands in abortive legal and survey fees.</div>
+        </div>
+        <div class="problem-card">
+          <div class="problem-id">PS-12</div>
+          <div class="problem-title">Exchange to completion is poorly understood</div>
+          <div class="problem-body">The legal distinction between exchange and completion confuses most buyers. Obligations in this final window (buildings insurance from exchange, balance transfer, meter readings) are poorly communicated by any single party.</div>
+        </div>
+      </div>
+
+      <h3>Stage 6 — Post-Completion</h3>
+      <div class="problem-grid">
+        <div class="problem-card">
+          <div class="problem-id">PS-13</div>
+          <div class="problem-title">Post-completion admin is an unexpected burden</div>
+          <div class="problem-body">SDLT payment (14-day deadline), Land Registry, utilities, electoral roll, insurance — no single party briefs buyers on these comprehensively. Things get missed, sometimes with financial or legal consequences.</div>
+        </div>
+        <div class="problem-card">
+          <div class="problem-id">PS-14</div>
+          <div class="problem-title">No framework for long-term ownership</div>
+          <div class="problem-body">Once buyers complete, support ends — yet critical decisions follow: when to remortgage, how to budget for maintenance, sinking fund obligations. Buyers revert to SVR (often 2–3% more expensive) through inaction.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Goals -->
+    <section class="section" id="goals">
+      <div class="section-title">Section 3</div>
+      <h2>Goals</h2>
+
+      <h3>User Goals</h3>
+      <ul class="goal-list">
+        <li><span class="goal-id">G-U1</span>Buyers arrive at each stage feeling informed and prepared, not overwhelmed.</li>
+        <li><span class="goal-id">G-U2</span>Buyers avoid common financial mistakes through timely, contextual alerts.</li>
+        <li><span class="goal-id">G-U3</span>Buyers understand every document they sign, with plain-English summaries surfacing the clauses that matter.</li>
+        <li><span class="goal-id">G-U4</span>Buyers feel confident enough to negotiate and push back without paying for professional advice at every step.</li>
+        <li><span class="goal-id">G-U5</span>Buyers complete their purchase without any critical admin tasks falling through the cracks.</li>
+      </ul>
+
+      <h3>Product Goals</h3>
+      <ul class="goal-list">
+        <li><span class="goal-id">G-P1</span>70% task completion rate across the six journey stages within 6 months of launch.</li>
+        <li><span class="goal-id">G-P2</span>30% reduction in user-reported stress at offer and exchange milestones vs. baseline.</li>
+        <li><span class="goal-id">G-P3</span>40% of new users through word-of-mouth referral within 12 months.</li>
+        <li><span class="goal-id">G-P4</span>Establish HomeReady as the primary reference product in first-time buyer communities (Reddit, MSE) within 18 months.</li>
+      </ul>
+    </section>
+
+    <!-- 4. Non-Goals -->
+    <section class="section" id="nongoals">
+      <div class="section-title">Section 4</div>
+      <h2>Non-Goals (v1)</h2>
+      <ul class="nongoal-list">
+        <li><strong>Renter journey support</strong> — distinct problem set, separate future initiative.</li>
+        <li><strong>Mortgage brokerage or financial advice</strong> — HomeReady surfaces context and flags options but will not provide regulated FCA advice or act as a lender intermediary.</li>
+        <li><strong>Solicitor or surveyor marketplace</strong> — referral fees and SRA compliance are out of scope.</li>
+        <li><strong>New-build purchases</strong> — distinct process (reservation fees, Help to Buy, snagging) warrants separate product treatment.</li>
+        <li><strong>Buy-to-let or second properties</strong> — exclusively for owner-occupier first-time buyers.</li>
+        <li><strong>Mobile app (iOS/Android)</strong> — v1 is a responsive web app; native apps considered in v2 based on usage data.</li>
+      </ul>
+    </section>
+
+    <!-- 5. Requirements -->
+    <section class="section" id="requirements">
+      <div class="section-title">Section 5</div>
+      <h2>Requirements</h2>
+
+      <h3>P0 — Must Have</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th style="width:60px">ID</th><th>Requirement</th><th style="width:70px">Priority</th><th style="width:80px">Status</th><th>Acceptance Criteria</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>R-01</td>
+              <td><strong>Cost-to-buy calculator</strong> — full acquisition cost breakdown from property price + postcode: SDLT, solicitor, survey, broker, moving costs.</td>
+              <td><span class="badge badge-p0">P0</span></td>
+              <td><span class="badge badge-done">Done</span></td>
+              <td>Matches HMRC SDLT within £1. All cost categories present. Under 5s.</td>
+            </tr>
+            <tr>
+              <td>R-02</td>
+              <td><strong>Listing decoder</strong> — paste URL or text; receive decoded analysis with trust score, euphemisms, red flags, and missing information.</td>
+              <td><span class="badge badge-p0">P0</span></td>
+              <td><span class="badge badge-done">Done</span></td>
+              <td>Identifies ≥10 common euphemisms. Flags absent key fields (EPC, tenure, service charge).</td>
+            </tr>
+            <tr>
+              <td>R-03</td>
+              <td><strong>Leasehold risk scanner</strong> — detect leasehold status and flag lease length, service charge, and ground rent risk.</td>
+              <td><span class="badge badge-p0">P0</span></td>
+              <td><span class="badge badge-done">Done</span></td>
+              <td>Correctly classifies freehold/leasehold. Flags &lt;85 years amber, &lt;80 red. Plain-English explanation per flag.</td>
+            </tr>
+            <tr>
+              <td>R-04</td>
+              <td><strong>Journey tracker</strong> — visual stage-by-stage timeline showing current position, next milestones, and required buyer actions.</td>
+              <td><span class="badge badge-p0">P0</span></td>
+              <td><span class="badge badge-done">Done</span></td>
+              <td>Covers all 6 conveyancing stages. User can mark complete. Persists across sessions. Mobile-responsive.</td>
+            </tr>
+            <tr>
+              <td>R-05</td>
+              <td><strong>Legal document explainer</strong> — upload PDF/DOCX, receive plain-English summary with flagged clauses and solicitor questions.</td>
+              <td><span class="badge badge-p0">P0</span></td>
+              <td><span class="badge badge-done">Done</span></td>
+              <td>Handles draft contracts, title registers, search results. Flags covenants, rights of way, chancel liability.</td>
+            </tr>
+            <tr>
+              <td>R-06</td>
+              <td><strong>Survey report interpreter</strong> — upload survey PDF; categorised summary (critical / significant / advisory) with renegotiation points.</td>
+              <td><span class="badge badge-p0">P0</span></td>
+              <td><span class="badge badge-done">Done</span></td>
+              <td>Handles RICS Level 2 and 3. Each finding includes typical cost, severity, and whether it warrants renegotiation.</td>
+            </tr>
+            <tr>
+              <td>R-07</td>
+              <td><strong>Post-completion checklist</strong> — auto-generated task list with deadlines tied to completion date.</td>
+              <td><span class="badge badge-p0">P0</span></td>
+              <td><span class="badge badge-done">Done</span></td>
+              <td>Includes SDLT (14 days), Land Registry, insurance, utilities. Deadlines from completion date. Persists across sessions.</td>
+            </tr>
+            <tr>
+              <td>R-10</td>
+              <td><strong>Neighbourhood Intelligence Agent</strong> — agentic AI calls TfL, Environment Agency, Ofsted, and web search; synthesises structured briefing for any UK postcode.</td>
+              <td><span class="badge badge-p0">P0</span></td>
+              <td><span class="badge badge-done">Done</span></td>
+              <td>Live API data. Real-time streaming UI. Cites sources. Covers commute, flood risk, schools, area character.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>P1 — Nice to Have (v1.1)</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th style="width:60px">ID</th><th>Requirement</th><th style="width:70px">Priority</th><th style="width:80px">Status</th><th>Acceptance Criteria</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>R-08</td>
+              <td><strong>Comparable price analysis</strong> — surface recent Land Registry sold prices for similar properties with plain-English assessment of whether asking price is fair.</td>
+              <td><span class="badge badge-p1">P1</span></td>
+              <td>Planned</td>
+              <td>Filtered by type, beds, ≤0.25 miles, ≤12 months. Includes recommended offer range.</td>
+            </tr>
+            <tr>
+              <td>R-09</td>
+              <td><strong>Negotiation coach</strong> — tailored script based on chain status, timeline, survey findings, and days on market.</td>
+              <td><span class="badge badge-p1">P1</span></td>
+              <td><span class="badge badge-done">Done</span></td>
+              <td>≥3 user-specific factors. Opening position + fallback + key justifications. Professional tone.</td>
+            </tr>
+            <tr>
+              <td>R-11</td>
+              <td><strong>Mortgage eligibility estimator</strong> — estimated borrowing range from income, employment type, deposit, and basic credit profile.</td>
+              <td><span class="badge badge-p1">P1</span></td>
+              <td>Planned</td>
+              <td>Min/max range. Handles self-employed and variable income. Labelled as estimate, not advice. Directs to FCA-regulated broker.</td>
+            </tr>
+            <tr>
+              <td>R-12</td>
+              <td><strong>Viewing question generator</strong> — tailored list of questions to ask at viewing based on property type, tenure, and flagged risks.</td>
+              <td><span class="badge badge-p1">P1</span></td>
+              <td><span class="badge badge-done">Done</span></td>
+              <td>≥10 questions. Vary by property type and tenure. Priority questions (deal-breakers) highlighted. Copyable.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>P2 — Future Considerations</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th style="width:60px">ID</th><th>Requirement</th><th style="width:70px">Priority</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>R-13</td><td><strong>Remortgage planner</strong> — alert 3 months before deal expiry; display SVR cost impact; surface comparison options.</td><td><span class="badge badge-p2">P2</span></td></tr>
+            <tr><td>R-14</td><td><strong>Property comparison view</strong> — side-by-side view of ≤10 saved properties with comparative scoring. Shareable with partner.</td><td><span class="badge badge-p2">P2</span></td></tr>
+            <tr><td>R-15</td><td><strong>Professional quality assessment</strong> — help users evaluate solicitors and surveyors on transparent criteria rather than estate agent referrals.</td><td><span class="badge badge-p2">P2</span></td></tr>
+            <tr><td>R-16</td><td><strong>Chain health monitor</strong> — real-time visibility into chain position and blocking factors. Requires solicitor system integration.</td><td><span class="badge badge-p2">P2</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 6. Success Metrics -->
+    <section class="section" id="metrics">
+      <div class="section-title">Section 6</div>
+      <h2>Success Metrics</h2>
+      <div class="metric-grid">
+        <div class="metric-card">
+          <div class="metric-type metric-leading">Leading</div>
+          <div class="metric-name">Stage completion rate</div>
+          <div class="metric-target">70%</div>
+          <div class="metric-window">≥3 of 6 stages · 30 days</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-type metric-leading">Leading</div>
+          <div class="metric-name">Listing decoder usage</div>
+          <div class="metric-target">80%</div>
+          <div class="metric-window">Active users · first 14 days</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-type metric-leading">Leading</div>
+          <div class="metric-name">Document upload usage</div>
+          <div class="metric-target">60%</div>
+          <div class="metric-window">Stage 4 users · 90 days</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-type metric-leading">Leading</div>
+          <div class="metric-name">Checklist completion</div>
+          <div class="metric-target">85%</div>
+          <div class="metric-window">Tasks before deadline · 30 days</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-type metric-lagging">Lagging</div>
+          <div class="metric-name">Stress score reduction</div>
+          <div class="metric-target">−30%</div>
+          <div class="metric-window">Offer + exchange vs. baseline · 6 months</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-type metric-lagging">Lagging</div>
+          <div class="metric-name">Word-of-mouth referral</div>
+          <div class="metric-target">40%</div>
+          <div class="metric-window">New signups attributed · 12 months</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-type metric-lagging">Lagging</div>
+          <div class="metric-name">30-day retention</div>
+          <div class="metric-target">55%</div>
+          <div class="metric-window">Cohort analysis · monthly</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-type metric-lagging">Lagging</div>
+          <div class="metric-name">NPS</div>
+          <div class="metric-target">&gt; 50</div>
+          <div class="metric-window">60 and 90 days post-signup</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. Open Questions -->
+    <section class="section" id="questions">
+      <div class="section-title">Section 7</div>
+      <h2>Open Questions</h2>
+
+      <h3>Blocking — Must Resolve Before Launch</h3>
+
+      <div class="question-block">
+        <div class="question-tag q-legal">Legal</div>
+        <div class="question-text">Does providing plain-English summaries of legal documents constitute regulated legal advice under the Legal Services Act 2007? Does a prominent disclaimer suffice, or is a legal review required before launch?</div>
+      </div>
+      <div class="question-block">
+        <div class="question-tag q-legal">Legal</div>
+        <div class="question-text">Does generating a negotiation script or affordability estimate trigger FCA financial promotion rules? Requires legal counsel review before these features are publicly promoted.</div>
+      </div>
+      <div class="question-block">
+        <div class="question-tag q-eng">Engineering</div>
+        <div class="question-text">Which data source will power comparable price analysis (R-08)? Land Registry data has a 3–6 month publication lag. Is this acceptable for v1, or do we need a paid alternative?</div>
+      </div>
+
+      <h3>Non-Blocking — Resolve During Build</h3>
+
+      <div class="question-block">
+        <div class="question-tag q-product">Product</div>
+        <div class="question-text">Should users be able to share their HomeReady dashboard with a partner or family member? If so, what is the collaboration model (view-only vs. edit access)?</div>
+      </div>
+      <div class="question-block">
+        <div class="question-tag q-product">Product</div>
+        <div class="question-text">What is the monetisation model? Freemium with paywalled document analysis, one-time purchase, or subscription? This affects v1 feature gate decisions.</div>
+      </div>
+      <div class="question-block">
+        <div class="question-tag q-design">Design</div>
+        <div class="question-text">How do we handle users who sign up mid-journey (e.g. already at offer stage)? Onboarding must accommodate entry from Stage 1 through Stage 4.</div>
+      </div>
+    </section>
+
+    <!-- 8. Phasing -->
+    <section class="section" id="phasing">
+      <div class="section-title">Section 8</div>
+      <h2>Phasing &amp; Timeline</h2>
+
+      <div class="phase-block">
+        <div class="phase-label">Phase 1</div>
+        <div class="phase-title">MVP — 8 weeks <span style="font-weight:400;font-size:13px;color:var(--text-muted)">(complete)</span></div>
+        <ul class="phase-list">
+          <li>Journey tracker (R-04) — visual stage timeline with user-controlled progress</li>
+          <li>Cost-to-buy calculator (R-01)</li>
+          <li>Listing decoder (R-02) + leasehold risk scanner (R-03)</li>
+          <li>Legal document explainer (R-05) + survey interpreter (R-06)</li>
+          <li>Post-completion checklist (R-07)</li>
+          <li>Neighbourhood Intelligence Agent (R-10) — streaming UI</li>
+          <li>Negotiation coach (R-09)</li>
+          <li>Viewing question generator (R-12)</li>
+          <li>Saved properties / shortlist</li>
+          <li>Basic user accounts — email signup, session persistence</li>
+        </ul>
+      </div>
+
+      <div class="phase-block">
+        <div class="phase-label">Phase 2</div>
+        <div class="phase-title">v1.1 — 6 weeks post-MVP</div>
+        <ul class="phase-list">
+          <li>Comparable price analysis (R-08) — Land Registry integration</li>
+          <li>Mortgage eligibility estimator (R-11) — pending legal review</li>
+          <li>Shortlist comparison view (R-14 partial) — side-by-side for 2–3 properties</li>
+          <li>Re-enable Supabase email confirmation before wider launch</li>
+          <li>Custom domain</li>
+        </ul>
+      </div>
+
+      <div class="phase-block">
+        <div class="phase-label">Phase 3</div>
+        <div class="phase-title">v2.0 — 6 months post-launch</div>
+        <ul class="phase-list">
+          <li>Stage 5 — Exchange &amp; Completion (R-16 chain monitor)</li>
+          <li>Remortgage planner (R-13)</li>
+          <li>Mobile app (iOS/Android)</li>
+          <li>Professional quality assessment (R-15) — pending regulatory review</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 9. Technical Approach -->
+    <section class="section" id="tech">
+      <div class="section-title">Section 9</div>
+      <h2>Technical Approach</h2>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Layer</th><th>Technology</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Frontend</td><td>React + Vite + TypeScript + Tailwind CSS</td><td>Responsive web app; custom token design system</td></tr>
+            <tr><td>Backend</td><td>Python + FastAPI + async SQLAlchemy</td><td>Thin routes → service layer → Claude</td></tr>
+            <tr><td>AI</td><td>Anthropic Claude (claude-sonnet-4-6)</td><td>All document analysis, listing decoding, and agentic features. Long context window critical for full legal document ingestion.</td></tr>
+            <tr><td>Streaming</td><td>FastAPI <code>StreamingResponse</code> (SSE)</td><td>Neighbourhood agent streams tool-call progress via <code>text/event-stream</code>; client uses <code>fetch()</code> + <code>ReadableStream</code></td></tr>
+            <tr><td>Auth</td><td>Supabase Auth</td><td>JWT validation via <code>supabase.auth.get_user()</code> on backend</td></tr>
+            <tr><td>Database</td><td>Supabase PostgreSQL</td><td>User accounts, journey state, saved properties</td></tr>
+            <tr><td>Migrations</td><td>Alembic</td><td>Async template; migrations applied via Railway deploy hooks</td></tr>
+            <tr><td>Frontend deploy</td><td>Vercel</td><td><code>npx vercel --prod</code> from <code>frontend/</code></td></tr>
+            <tr><td>Backend deploy</td><td>Railway</td><td>Auto-deploy on push to <code>main</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Agentic Architecture — Neighbourhood Agent</h3>
+      <p>The Neighbourhood Intelligence Agent uses Claude's native tool-use capability in an agentic loop. Claude autonomously decides which tools to call (TfL transport, Environment Agency flood risk, Ofsted schools, web search) based on the postcode and buyer priorities, then synthesises multi-source results into a structured briefing. Tool-call progress is streamed to the client in real time via SSE, eliminating perceived latency for an 8–15 second operation.</p>
+    </section>
+
+  </main>
+</div>
+
+<script>
+  // Highlight active TOC link on scroll
+  const sections = document.querySelectorAll('section[id]');
+  const links = document.querySelectorAll('.toc a');
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        links.forEach(l => l.classList.remove('active'));
+        const link = document.querySelector(`.toc a[href="#${entry.target.id}"]`);
+        if (link) link.classList.add('active');
+      }
+    });
+  }, { threshold: 0.3, rootMargin: '-80px 0px -60% 0px' });
+
+  sections.forEach(s => observer.observe(s));
+</script>
+
+</body>
+</html>

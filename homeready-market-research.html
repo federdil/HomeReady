@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HomeReady — Market Research Brief</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy:    #0f1f3d;
+    --parchment: #f7f3ec;
+    --amber:   #c8862a;
+    --amber-light: #fdf3e3;
+    --amber-border: #f0d4a0;
+    --sage:    #3d6b55;
+    --sage-light: #edf4ef;
+    --sage-border: #b3d4be;
+    --red:     #c0392b;
+    --red-light: #fdf2f1;
+    --red-border: #f0bab6;
+    --ink:     #1a1a2e;
+    --muted:   #6b7280;
+    --border:  #e5e0d8;
+    --white:   #ffffff;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--parchment);
+    color: var(--ink);
+    font-size: 15px;
+    line-height: 1.65;
+  }
+
+  /* ── MASTHEAD ── */
+  .masthead {
+    background: var(--navy);
+    padding: 48px 0 56px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .masthead::before {
+    content: '';
+    position: absolute;
+    bottom: -2px; left: 0; right: 0;
+    height: 32px;
+    background: var(--parchment);
+    clip-path: ellipse(55% 100% at 50% 100%);
+  }
+
+  .masthead-inner {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 32px;
+  }
+
+  .doc-label {
+    display: inline-block;
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--amber);
+    border: 1px solid rgba(200,134,42,0.4);
+    padding: 4px 12px;
+    border-radius: 3px;
+    margin-bottom: 20px;
+  }
+
+  .masthead h1 {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(32px, 5vw, 52px);
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1.1;
+    margin-bottom: 16px;
+  }
+
+  .masthead h1 em {
+    font-style: italic;
+    color: var(--amber);
+  }
+
+  .masthead-meta {
+    font-size: 13px;
+    color: rgba(255,255,255,0.5);
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+
+  /* ── LAYOUT ── */
+  .page {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 48px 32px 80px;
+    display: flex;
+    flex-direction: column;
+    gap: 56px;
+  }
+
+  /* ── SECTION ── */
+  .section-eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .section-title {
+    font-family: 'Fraunces', serif;
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--navy);
+    margin-bottom: 24px;
+    line-height: 1.2;
+  }
+
+  .section-title span {
+    color: var(--amber);
+  }
+
+  /* ── MARKET SNAPSHOT ── */
+  .snapshot-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .stat-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+
+  .stat-card .number {
+    font-family: 'Fraunces', serif;
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--navy);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .stat-card .label {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+
+  /* ── PAIN POINTS ── */
+  .pain-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .pain-item {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 20px;
+    display: grid;
+    grid-template-columns: 32px 1fr auto;
+    align-items: start;
+    gap: 14px;
+  }
+
+  .pain-stage {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    background: var(--parchment);
+    border-radius: 4px;
+    padding: 3px 6px;
+    text-align: center;
+    line-height: 1.3;
+    margin-top: 1px;
+    white-space: nowrap;
+  }
+
+  .pain-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 3px;
+  }
+
+  .pain-desc {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .gap-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 99px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .gap-critical { background: var(--red-light); color: var(--red); border: 1px solid var(--red-border); }
+  .gap-partial  { background: var(--amber-light); color: var(--amber); border: 1px solid var(--amber-border); }
+  .gap-solved   { background: var(--sage-light); color: var(--sage); border: 1px solid var(--sage-border); }
+
+  /* ── COMPETITOR TABLE ── */
+  .comp-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .comp-table th {
+    background: var(--navy);
+    color: rgba(255,255,255,0.7);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 10px 16px;
+    text-align: left;
+  }
+
+  .comp-table td {
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    line-height: 1.45;
+  }
+
+  .comp-table tr:last-child td { border-bottom: none; }
+
+  .comp-table tr:hover td { background: #faf9f7; }
+
+  .comp-name {
+    font-weight: 600;
+    color: var(--ink);
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  .comp-type {
+    font-size: 11px;
+    color: var(--muted);
+    display: block;
+  }
+
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
+  .dot-red   { background: var(--red); }
+  .dot-amber { background: var(--amber); }
+  .dot-sage  { background: var(--sage); }
+
+  /* highlight homeready row */
+  .comp-table tr.homeready td {
+    background: #f0f4fc;
+  }
+  .comp-table tr.homeready td:first-child {
+    border-left: 3px solid #2563eb;
+  }
+
+  /* ── WHAT'S SOLVED ── */
+  .solved-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .solved-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+
+  .solved-card.solved { border-top: 3px solid var(--sage); }
+  .solved-card.partial { border-top: 3px solid var(--amber); }
+  .solved-card.gap    { border-top: 3px solid var(--red); }
+
+  .solved-card .card-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .solved-card.solved .card-label  { color: var(--sage); }
+  .solved-card.partial .card-label { color: var(--amber); }
+  .solved-card.gap .card-label     { color: var(--red); }
+
+  .solved-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .solved-list li {
+    font-size: 13px;
+    color: var(--ink);
+    padding-left: 18px;
+    position: relative;
+    line-height: 1.4;
+  }
+
+  .solved-list li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  /* ── VALUE PROP ── */
+  .vp-box {
+    background: var(--navy);
+    border-radius: 12px;
+    padding: 36px 40px;
+    color: white;
+  }
+
+  .vp-box .vp-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 14px;
+  }
+
+  .vp-box .vp-headline {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 1.35;
+    margin-bottom: 24px;
+    color: white;
+  }
+
+  .vp-pillars {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 24px;
+  }
+
+  .vp-pillar {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 8px;
+    padding: 16px;
+  }
+
+  .vp-pillar-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--amber);
+    margin-bottom: 6px;
+  }
+
+  .vp-pillar-body {
+    font-size: 12px;
+    color: rgba(255,255,255,0.65);
+    line-height: 1.5;
+  }
+
+  /* ── OPPORTUNITY ── */
+  .opportunity-box {
+    background: var(--sage-light);
+    border: 1px solid var(--sage-border);
+    border-radius: 10px;
+    padding: 28px 32px;
+  }
+
+  .opportunity-box p {
+    font-size: 15px;
+    color: var(--sage);
+    line-height: 1.7;
+  }
+
+  .opportunity-box strong {
+    color: var(--navy);
+  }
+
+  /* ── DIVIDER ── */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+  }
+
+  @media (max-width: 640px) {
+    .snapshot-grid { grid-template-columns: 1fr 1fr; }
+    .solved-grid   { grid-template-columns: 1fr; }
+    .vp-pillars    { grid-template-columns: 1fr; }
+    .pain-item     { grid-template-columns: 1fr; }
+    .comp-table    { display: block; overflow-x: auto; }
+    .masthead-meta { gap: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="masthead">
+  <div class="masthead-inner">
+    <div class="doc-label">Market Research Brief</div>
+    <h1>HomeReady in the<br><em>UK PropTech landscape</em></h1>
+    <div class="masthead-meta">
+      <span>June 2026</span>
+      <span>First-time buyer segment</span>
+      <span>UK market</span>
+    </div>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- MARKET SNAPSHOT -->
+  <section>
+    <div class="section-eyebrow">Market context</div>
+    <div class="section-title">The opportunity is real — and largely unserved</div>
+
+    <div class="snapshot-grid">
+      <div class="stat-card">
+        <div class="number">341K</div>
+        <div class="label">first-time buyers in the UK in 2024, up 19% from 2023</div>
+      </div>
+      <div class="stat-card">
+        <div class="number">£311K</div>
+        <div class="label">average first-time buyer purchase price in 2024</div>
+      </div>
+      <div class="stat-card">
+        <div class="number">40%+</div>
+        <div class="label">of UK sales fell through in Q2 2025 — almost all avoidable</div>
+      </div>
+      <div class="stat-card">
+        <div class="number">12–18</div>
+        <div class="label">months average time from initial search to completion</div>
+      </div>
+      <div class="stat-card">
+        <div class="number">15%</div>
+        <div class="label">extra costs buyers systematically underestimate on top of price</div>
+      </div>
+      <div class="stat-card">
+        <div class="number">120</div>
+        <div class="label">days average conveyancing duration — opaque to buyers throughout</div>
+      </div>
+    </div>
+
+    <div class="opportunity-box">
+      <p>The UK residential property market is the UK's largest retail transaction category — yet <strong>no single product owns the end-to-end first-time buyer journey</strong>. Existing tools address isolated moments (search, mortgage calculators, generic legal info) but leave buyers navigating the most stressful, expensive stages entirely alone. The government's own 2026 Home Buying Reform roadmap explicitly calls out the lack of buyer-side transparency as a systemic failure.</p>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- PAIN POINTS NOT ADDRESSED IN MARKET -->
+  <section>
+    <div class="section-eyebrow">Gap analysis</div>
+    <div class="section-title">Biggest pain points the market <span>still hasn't solved</span></div>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:20px;">Assessed across all currently available UK tools — portals, calculators, legal info sites, and AI assistants.</p>
+
+    <div class="pain-grid">
+
+      <div class="pain-item">
+        <div class="pain-stage">S4</div>
+        <div>
+          <div class="pain-name">Legal documents written for lawyers, not buyers</div>
+          <div class="pain-desc">Buyers receive draft contracts, title registers, and search results during conveyancing and have no way to understand them without paying solicitor hourly rates. AI tools for this exist for solicitors (Moverly, Writford, Legalito) — none are designed for buyers.</div>
+        </div>
+        <span class="gap-badge gap-critical">Critical gap</span>
+      </div>
+
+      <div class="pain-item">
+        <div class="pain-stage">S2</div>
+        <div>
+          <div class="pain-name">Listing language that systematically misleads</div>
+          <div class="pain-desc">Every portal shows listings as written by agents, for sellers. Jitty offers conversational search, but no tool decodes euphemisms, flags missing info, or gives a trust score. Buyers arrive at viewings misled — every time.</div>
+        </div>
+        <span class="gap-badge gap-critical">Critical gap</span>
+      </div>
+
+      <div class="pain-item">
+        <div class="pain-stage">S2</div>
+        <div>
+          <div class="pain-name">Neighbourhood intelligence scattered across dozens of sources</div>
+          <div class="pain-desc">TfL, Ofsted, flood risk, crime data, planning portals — all public, none synthesised per property for a buyer. Portals offer superficial local data; nothing provides a synthesised, buyer-oriented briefing from live APIs.</div>
+        </div>
+        <span class="gap-badge gap-critical">Critical gap</span>
+      </div>
+
+      <div class="pain-item">
+        <div class="pain-stage">S4</div>
+        <div>
+          <div class="pain-name">Survey reports that cause panic without context</div>
+          <div class="pain-desc">RICS Level 2 and Level 3 surveys return dense amber/red findings. No consumer product categorises these by severity, explains implications, or advises whether findings warrant renegotiation. Buyers either over-react or under-react.</div>
+        </div>
+        <span class="gap-badge gap-critical">Critical gap</span>
+      </div>
+
+      <div class="pain-item">
+        <div class="pain-stage">S1</div>
+        <div>
+          <div class="pain-name">True cost of buying never presented in one place</div>
+          <div class="pain-desc">SDLT, solicitor fees, survey, broker, moving costs — calculators exist for each individually. No tool combines them into a single true acquisition cost from a listing URL. Buyers discover the full picture at offer stage when they've emotionally committed.</div>
+        </div>
+        <span class="gap-badge gap-partial">Partially served</span>
+      </div>
+
+      <div class="pain-item">
+        <div class="pain-stage">S6</div>
+        <div>
+          <div class="pain-name">Post-completion admin with real financial penalties if missed</div>
+          <div class="pain-desc">SDLT must be paid within 14 days of completion. Land Registry, utilities, insurance — no single party briefs buyers comprehensively. Generic moving checklists exist; deadline-driven, completion-date-anchored trackers do not.</div>
+        </div>
+        <span class="gap-badge gap-partial">Partially served</span>
+      </div>
+
+      <div class="pain-item">
+        <div class="pain-stage">S3</div>
+        <div>
+          <div class="pain-name">Offer price anchored on emotion, not comparable data</div>
+          <div class="pain-desc">Land Registry data is public but requires interpretation most buyers lack. Rightmove and Zoopla show sold prices but without a plain-English "is this fair?" layer. Buyers routinely overpay by £5–30K or underbid unnecessarily.</div>
+        </div>
+        <span class="gap-badge gap-partial">Partially served</span>
+      </div>
+
+      <div class="pain-item">
+        <div class="pain-stage">S2</div>
+        <div>
+          <div class="pain-name">Leasehold traps invisible until after solicitor instruction</div>
+          <div class="pain-desc">Most leasehold risk (short lease, ground rent escalation, high service charges) is buried in listing small print or only surfaces at conveyancing. Buyers with flats — 90%+ of London stock — have no early-warning system.</div>
+        </div>
+        <span class="gap-badge gap-critical">Critical gap</span>
+      </div>
+
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- COMPETITOR LANDSCAPE -->
+  <section>
+    <div class="section-eyebrow">Competitive landscape</div>
+    <div class="section-title">Who's in the market — and where they stop</div>
+
+    <table class="comp-table">
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>What they do</th>
+          <th>Where they stop</th>
+          <th>Buyer-side AI?</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <span class="comp-name">Rightmove</span>
+            <span class="comp-type">Listings portal (dominant)</span>
+          </td>
+          <td>Property search, sold prices, basic mortgage calculator, saved searches</td>
+          <td>Pure discovery tool. No guidance, no document help, no journey continuity. AI features (Gemini integration) are for search UX only.</td>
+          <td><span class="dot dot-red"></span>Search only</td>
+        </tr>
+        <tr>
+          <td>
+            <span class="comp-name">Zoopla</span>
+            <span class="comp-type">Listings portal</span>
+          </td>
+          <td>Listings, local data, affordability tool, property value estimates</td>
+          <td>Same as Rightmove. Affordability tool is generic. No post-search guidance. Seller-funded model means inherent bias.</td>
+          <td><span class="dot dot-red"></span>Search only</td>
+        </tr>
+        <tr>
+          <td>
+            <span class="comp-name">Jitty</span>
+            <span class="comp-type">AI-powered portal (emerging)</span>
+          </td>
+          <td>Conversational property search, travel time filter, price/sqft, AI homebuying assistant in testing</td>
+          <td>Still a search/discovery tool. No legal doc analysis, no post-offer guidance, no journey tracker. Limited UK coverage vs Rightmove.</td>
+          <td><span class="dot dot-amber"></span>Discovery + context</td>
+        </tr>
+        <tr>
+          <td>
+            <span class="comp-name">MoneyHelper</span>
+            <span class="comp-type">Government guidance (MaPS)</span>
+          </td>
+          <td>Comprehensive written guides for every stage, mortgage calculators, scheme eligibility</td>
+          <td>Static content — no personalisation, no AI, no document analysis. Not interactive. Stops at Stage 2.</td>
+          <td><span class="dot dot-red"></span>None</td>
+        </tr>
+        <tr>
+          <td>
+            <span class="comp-name">Which? / MoneySavingExpert</span>
+            <span class="comp-type">Consumer advice media</span>
+          </td>
+          <td>Editorial guidance, mortgage rate tracking, broker comparisons, checklist articles</td>
+          <td>Generic advice — no property-specific analysis. No AI. Commercial interests in affiliate mortgage/solicitor referrals.</td>
+          <td><span class="dot dot-red"></span>None</td>
+        </tr>
+        <tr>
+          <td>
+            <span class="comp-name">LawConnect / generic AI legal</span>
+            <span class="comp-type">AI legal Q&A</span>
+          </td>
+          <td>Free AI chatbot for property law questions, generic conveyancing explanation</td>
+          <td>General Q&A only. Cannot analyse uploaded documents. No journey context. Lead-gen funnel for solicitor referrals, not buyer advocacy.</td>
+          <td><span class="dot dot-amber"></span>General only</td>
+        </tr>
+        <tr>
+          <td>
+            <span class="comp-name">Moverly / Legalito / Writford</span>
+            <span class="comp-type">AI conveyancing tools (B2B)</span>
+          </td>
+          <td>AI title review, lease analysis, search triage — saving solicitors 5+ hours/week</td>
+          <td>Built for solicitors, not buyers. Buyers have no access. Creates faster conveyancing but zero buyer transparency.</td>
+          <td><span class="dot dot-amber"></span>Solicitor-side only</td>
+        </tr>
+        <tr>
+          <td>
+            <span class="comp-name">Home Buying App (Mortgage Quarter)</span>
+            <span class="comp-type">Buyer checklist app</span>
+          </td>
+          <td>Static checklists, savings calculator, knowledge library, mortgage broker funnel</td>
+          <td>No AI, no document analysis, no neighbourhood data. Stages 1–2 only. Effectively a mortgage broker lead gen tool.</td>
+          <td><span class="dot dot-red"></span>None</td>
+        </tr>
+        <tr class="homeready">
+          <td>
+            <span class="comp-name" style="color:#2563eb">HomeReady</span>
+            <span class="comp-type">End-to-end AI buyer companion</span>
+          </td>
+          <td>Full 6-stage journey, listing decoder, legal doc + survey analysis, neighbourhood agent, cost calculator, post-completion checklist</td>
+          <td>No mortgage brokerage, no solicitor marketplace, no chain monitoring (Phase 2), no comparable price analysis (Phase 2)</td>
+          <td><span class="dot dot-sage"></span>Buyer-first AI</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="divider">
+
+  <!-- WHAT'S SOLVED / NOT SOLVED -->
+  <section>
+    <div class="section-eyebrow">HomeReady coverage</div>
+    <div class="section-title">What HomeReady solves — and what it <span>doesn't yet</span></div>
+
+    <div class="solved-grid">
+
+      <div class="solved-card solved">
+        <div class="card-label">✓ Solved in MVP</div>
+        <ul class="solved-list">
+          <li>Listing language decoded — euphemisms, red flags, trust score</li>
+          <li>Leasehold risk flagged before solicitor instruction</li>
+          <li>True acquisition cost in one place (SDLT, fees, all-in)</li>
+          <li>Legal documents in plain English with severity-coded clauses</li>
+          <li>Neighbourhood briefing from live APIs (transport, schools, flood)</li>
+          <li>Journey tracker — visual stage timeline with user progress</li>
+          <li>Post-completion admin with deadline tracking</li>
+        </ul>
+      </div>
+
+      <div class="solved-card partial">
+        <div class="card-label">~ Phase 2 (planned)</div>
+        <ul class="solved-list">
+          <li>Survey report interpreter with severity categorisation</li>
+          <li>Comparable price analysis from Land Registry data</li>
+          <li>Negotiation coach with personalised scripts</li>
+          <li>Viewing question generator per property type</li>
+          <li>Mortgage eligibility estimator (pending legal review)</li>
+        </ul>
+      </div>
+
+      <div class="solved-card gap">
+        <div class="card-label">✗ Out of scope (v1)</div>
+        <ul class="solved-list">
+          <li>Chain health monitoring (requires solicitor system integration)</li>
+          <li>Regulated financial advice or mortgage brokerage</li>
+          <li>Solicitor / surveyor marketplace</li>
+          <li>New-build purchase journey</li>
+          <li>Renter guidance</li>
+          <li>Property comparison tracker (Phase 3)</li>
+          <li>Remortgage planner (Phase 3)</li>
+        </ul>
+      </div>
+
+      <div class="solved-card partial">
+        <div class="card-label">⚠ Known risks / limitations</div>
+        <ul class="solved-list">
+          <li>Neighbourhood agent: 8–15s latency needs streaming UI</li>
+          <li>Legal doc analysis carries regulatory risk under Legal Services Act</li>
+          <li>Land Registry data has 3–6 month lag (affects comparables accuracy)</li>
+          <li>No human fallback when AI is wrong — disclaimer strategy only</li>
+          <li>Auth / journey persistence not yet wired (Phase 0.5 in progress)</li>
+        </ul>
+      </div>
+
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- VALUE PROPOSITION -->
+  <section>
+    <div class="section-eyebrow">Positioning</div>
+    <div class="section-title">HomeReady's value <span>proposition</span></div>
+
+    <div class="vp-box">
+      <div class="vp-label">Core proposition</div>
+      <div class="vp-headline">"The knowledgeable friend who's been through it — available at every stage of your first home, for free."</div>
+      <p style="font-size:14px;color:rgba(255,255,255,0.7);line-height:1.7;">Every other product in this market either serves the seller's interests (portals), stops at search (Jitty), provides only static guidance (MoneyHelper, Which?), or is built for professionals not buyers (AI conveyancing tools). HomeReady is the only product that follows the buyer from "what can I afford?" through to "what do I do in the first 14 days of owning?" — using AI to do what previously required a solicitor friend, a financially savvy parent, and hours of research.</p>
+      <div class="vp-pillars">
+        <div class="vp-pillar">
+          <div class="vp-pillar-title">Buyer-first</div>
+          <div class="vp-pillar-body">No seller funding, no estate agent affiliation, no mortgage affiliate model. Pure buyer advocacy — the only product explicitly on the buyer's side.</div>
+        </div>
+        <div class="vp-pillar">
+          <div class="vp-pillar-title">End-to-end</div>
+          <div class="vp-pillar-body">Stages 1–6: financial readiness through post-completion. The only UK product that doesn't drop buyers after they find a property.</div>
+        </div>
+        <div class="vp-pillar">
+          <div class="vp-pillar-title">AI that acts</div>
+          <div class="vp-pillar-body">Not a chatbot. Actual document analysis, live API orchestration, and clause-level legal explanation — capabilities previously gated behind professional fees.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- STRATEGIC CALLOUT -->
+  <section>
+    <div class="section-eyebrow">Strategic lens</div>
+    <div class="section-title">Where HomeReady should double down</div>
+
+    <div class="pain-grid">
+      <div class="pain-item" style="border-left: 3px solid var(--sage);">
+        <div class="pain-stage" style="background:var(--sage-light);color:var(--sage);">🎯</div>
+        <div>
+          <div class="pain-name">The legal document gap is the biggest defensible moat</div>
+          <div class="pain-desc">AI conveyancing tools are being built for solicitors at speed (Moverly, Legalito, Writford). None are for buyers. HomeReady getting to buyer-facing document analysis first — and doing it well — creates a category before enterprise tools pivot to the consumer space.</div>
+        </div>
+        <span class="gap-badge gap-solved">Priority</span>
+      </div>
+      <div class="pain-item" style="border-left: 3px solid var(--sage);">
+        <div class="pain-stage" style="background:var(--sage-light);color:var(--sage);">🎯</div>
+        <div>
+          <div class="pain-name">Journey continuity is the structural advantage</div>
+          <div class="pain-desc">Every competitor solves one moment. HomeReady's journey tracker makes it structurally sticky — users return at each stage. The post-completion checklist alone captures a moment no other product touches at all.</div>
+        </div>
+        <span class="gap-badge gap-solved">Priority</span>
+      </div>
+      <div class="pain-item" style="border-left: 3px solid var(--amber);">
+        <div class="pain-stage" style="background:var(--amber-light);color:var(--amber);">⚠</div>
+        <div>
+          <div class="pain-name">Jitty is the closest threat — but still search-only</div>
+          <div class="pain-desc">Jitty launched its conversational AI buyer assistant in March 2026. It's well-funded and explicitly buyer-first. Watch for expansion post-offer into guidance territory. HomeReady needs to own Stages 3–6 before Jitty decides to go there.</div>
+        </div>
+        <span class="gap-badge gap-partial">Watch</span>
+      </div>
+      <div class="pain-item" style="border-left: 3px solid var(--amber);">
+        <div class="pain-stage" style="background:var(--amber-light);color:var(--amber);">⚠</div>
+        <div>
+          <div class="pain-name">Government reform is tailwind — and potential threat</div>
+          <div class="pain-desc">The 2026 Home Buying Reform roadmap mandates standardised upfront property data and sales packs. This could make some HomeReady features redundant — or dramatically increase demand for tools that help buyers interpret more upfront data.</div>
+        </div>
+        <span class="gap-badge gap-partial">Monitor</span>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+</body>
+</html>

@@ -12,16 +12,8 @@ export function Card({ children, className }: { children: React.ReactNode; class
 }
 
 // Backward-compat aliases
-export function GlassCard({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cn('glass-card p-5', className)}>{children}</div>
-}
-
 export function SolidCard({ children, className }: { children: React.ReactNode; className?: string }) {
   return <div className={cn('card p-6', className)}>{children}</div>
-}
-
-export function TintedCard({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cn('card-tinted p-5', className)}>{children}</div>
 }
 
 // ── Stage pill ────────────────────────────────────────────────────────────────
@@ -99,14 +91,20 @@ export function PrimaryButton({
 }
 
 export function SecondaryButton({
-  children, onClick, className,
+  children, onClick, className, disabled,
 }: {
   children: React.ReactNode
   onClick?: () => void
   className?: string
+  disabled?: boolean
 }) {
   return (
-    <button type="button" onClick={onClick} className={cn('btn-secondary', className)}>
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={cn('btn-secondary', className)}
+    >
       {children}
     </button>
   )
@@ -188,34 +186,6 @@ export function FormField({
   )
 }
 
-// ── Section header ────────────────────────────────────────────────────────────
-
-export function SectionHeader({
-  icon, title, subtitle, badge,
-}: {
-  icon?: React.ReactNode
-  title: string
-  subtitle?: string
-  badge?: React.ReactNode
-}) {
-  return (
-    <div className="flex items-center gap-3 mb-4">
-      {icon && (
-        <div className="w-8 h-8 rounded-lg bg-brand-light flex items-center justify-center text-brand shrink-0">
-          {icon}
-        </div>
-      )}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <h2 className="font-display text-lg text-ink">{title}</h2>
-          {badge}
-        </div>
-        {subtitle && <p className="text-sm text-ink-muted">{subtitle}</p>}
-      </div>
-    </div>
-  )
-}
-
 // ── Callout ───────────────────────────────────────────────────────────────────
 
 type CalloutVariant = 'info' | 'success' | 'warning' | 'danger'
@@ -245,56 +215,8 @@ export function Callout({
   )
 }
 
-// ── Empty state ───────────────────────────────────────────────────────────────
-
-export function EmptyState({
-  icon, title, description, action,
-}: {
-  icon: React.ReactNode
-  title: string
-  description: string
-  action?: React.ReactNode
-}) {
-  return (
-    <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-      <div className="w-14 h-14 rounded-2xl bg-surface-2 border border-border flex items-center justify-center mb-4 text-ink-faint">
-        {icon}
-      </div>
-      <h3 className="font-display text-lg text-ink mb-2">{title}</h3>
-      <p className="text-sm text-ink-muted max-w-xs leading-relaxed mb-5">{description}</p>
-      {action}
-    </div>
-  )
-}
-
 // ── Loading skeleton ──────────────────────────────────────────────────────────
 
 export function Skeleton({ className }: { className?: string }) {
   return <div className={cn('skeleton', className)} />
-}
-
-// ── Stat card ─────────────────────────────────────────────────────────────────
-
-export function StatCard({
-  label, value, sub, accent,
-}: {
-  label: string
-  value: string
-  sub?: string
-  accent?: 'success' | 'warning' | 'danger' | 'brand'
-}) {
-  const accentColor = {
-    success: 'text-success',
-    warning: 'text-warning',
-    danger:  'text-danger',
-    brand:   'text-brand',
-  }[accent ?? 'brand'] ?? 'text-ink'
-
-  return (
-    <div className="stat-card">
-      <p className="stat-card-label">{label}</p>
-      <p className={cn('stat-card-value', accentColor)}>{value}</p>
-      {sub && <p className="stat-card-sub">{sub}</p>}
-    </div>
-  )
 }

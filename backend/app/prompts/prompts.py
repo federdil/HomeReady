@@ -11,44 +11,46 @@ Your tone is warm, clear, and reassuring — like a knowledgeable friend who has
 You always respond in valid JSON that matches the schema requested. Never include markdown code fences or any text outside the JSON object."""
 
 
-# ── Cost Calculator ────────────────────────────────────────────────────────
-def cost_calculator_prompt(
+# ── Cost Calculator — advice only ──────────────────────────────────────────
+# Every figure below is computed in app/services/calculators.py from published
+# rate tables. Claude receives the finished numbers as fact and writes prose
+# about them. It is never asked to calculate, sum, or recall a rate — that is
+# what produced a £2,500 stamp-duty error and totals that disagreed with their
+# own breakdown.
+def cost_advice_prompt(
     property_price: float,
     postcode: str,
     is_first_time_buyer: bool,
     deposit: float,
+    ltv: float,
+    stamp_duty: float,
+    fees_total: float,
+    cash_needed: float,
+    lines: list[tuple[str, float]],
 ) -> str:
-    loan_amount = property_price - deposit
-    ltv = (loan_amount / property_price) * 100
+    itemised = "\n".join(f"- {label}: £{amount:,.0f}" for label, amount in lines)
 
-    return f"""Calculate the full cost of buying this property for a UK buyer.
+    return f"""These figures have already been calculated and are correct. Do not
+recalculate them, restate them as a list, or question them.
 
-Property details:
 - Asking price: £{property_price:,.0f}
 - Postcode: {postcode}
 - First-time buyer: {is_first_time_buyer}
-- Deposit: £{deposit:,.0f}
-- Mortgage needed: £{loan_amount:,.0f} ({ltv:.0f}% LTV)
+- Deposit: £{deposit:,.0f} ({ltv:.0f}% LTV)
+- Stamp Duty: £{stamp_duty:,.0f}
+- All fees and tax: £{fees_total:,.0f}
+- Total cash needed on completion: £{cash_needed:,.0f}
 
-Calculate and return a JSON object with this exact structure:
-{{
-  "property_price": {property_price},
-  "total_cost": <number: property_price + all fees + stamp_duty>,
-  "stamp_duty": <number: SDLT amount - 0 for FTBs on properties under £425K, reduced rate up to £625K>,
-  "breakdown": [
-    {{"label": "Stamp Duty Land Tax", "amount": <number>, "note": "<brief explanation>"}},
-    {{"label": "Solicitor / Conveyancing fees", "amount": <number: typical £1200-2000 for this price>, "note": ""}},
-    {{"label": "Survey (Level 2 HomeBuyer Report)", "amount": <number: typical £400-600>, "note": ""}},
-    {{"label": "Mortgage arrangement fee", "amount": <number: typical £999-1499>, "note": "Often added to mortgage"}},
-    {{"label": "Mortgage valuation fee", "amount": <number: typical £150-300>, "note": ""}},
-    {{"label": "Land Registry fee", "amount": <number: based on price band>, "note": ""}},
-    {{"label": "Electronic transfer fee", "amount": 35, "note": ""}},
-    {{"label": "Moving costs", "amount": <number: typical £800-1500 for London>, "note": "Estimate"}}
-  ],
-  "advice": "<2-3 sentences of plain-English advice about this specific purchase, noting anything unusual about the cost profile>"
-}}
+Itemised:
+{itemised}
 
-Use current 2024/2025 SDLT rates and realistic UK market fee ranges. Be precise."""
+Write 2-3 sentences of plain-English advice for this specific purchase. Focus on
+what is genuinely notable about this cost profile — an LTV that will affect the
+rate offered, a stamp duty threshold sitting close to the asking price, or a
+total cash requirement noticeably higher than the buyer likely expected.
+
+Return the advice as plain prose. No JSON, no markdown, no preamble, no bullet
+points, and do not begin by repeating the numbers back."""
 
 
 # ── Listing Decoder ────────────────────────────────────────────────────────
@@ -267,3 +269,124 @@ Return a JSON object with this exact structure:
   "walkaway_price": <integer: the absolute maximum they should pay — be disciplined>,
   "negotiation_tips": ["<tactical advice specific to this situation, 3-5 tips>"]
 }}"""
+
+
+# ── Property value summary + feature extraction ────────────────────────────
+VALUE_SUMMARY_SYSTEM = BASE_SYSTEM + """
+
+You write short, honest verdicts on individual properties for a buyer who has
+already told you what they care about. You are blunt about weaknesses and you
+never pad."""
+
+
+def value_summary_prompt(
+    address: str,
+    price: float | None,
+    bedrooms: int | None,
+    property_type: str,
+    tenure: str,
+    lease_years: int | None,
+    price_per_sqft: int | None,
+    floor_area_sqft: int | None,
+    running_costs_total: float | None,
+    running_cost_lines: list[tuple[str, float]],
+    dimensions: list[tuple[str, int | None, int, str]],
+    fit_score: int | None,
+    coverage: int,
+    persona_label: str,
+    listing_text: str = "",
+    key_features: list[str] | None = None,
+    wants_outdoor_space: bool = False,
+    wants_parking: bool = False,
+) -> str:
+    """Two jobs in one call: extract the feature facts the structured fields
+    cannot express, and write the verdict.
+
+    The extraction is deliberately *facts, not scores* — the score is computed
+    in Python from what is returned here, so it stays auditable and re-ranks
+    instantly when the buyer changes their priorities.
+    """
+    facts = [f"- Address: {address or 'not stated'}"]
+    if price:
+        facts.append(f"- Asking price: £{price:,.0f}")
+    if bedrooms is not None:
+        facts.append(f"- Bedrooms: {bedrooms}")
+    if property_type:
+        facts.append(f"- Type: {property_type}")
+    if tenure:
+        facts.append(
+            f"- Tenure: {tenure}"
+            + (f", {lease_years} years remaining" if lease_years else "")
+        )
+    if floor_area_sqft:
+        facts.append(f"- Floor area: {floor_area_sqft:,} sq ft")
+    if price_per_sqft:
+        facts.append(f"- Price per sq ft: £{price_per_sqft:,}")
+    if running_costs_total:
+        breakdown = ", ".join(f"{label} £{amount:,.0f}" for label, amount in running_cost_lines)
+        facts.append(f"- Annual running costs: £{running_costs_total:,.0f} ({breakdown})")
+
+    scored, missing = [], []
+    for label, score, weight, detail in dimensions:
+        if score is None:
+            if weight > 0:
+                missing.append(label)
+        else:
+            scored.append(f"- {label}: {score}/100 (their priority weight {weight}/100) — {detail}")
+
+    wanted = []
+    if wants_outdoor_space:
+        wanted.append('"outdoor_space": "private" | "communal" | "none" | "not_stated"')
+    if wants_parking:
+        wanted.append('"parking": "allocated" | "permit" | "none" | "not_stated"')
+    features_schema = ",\n    ".join(wanted) if wanted else ""
+
+    extraction_block = f"""
+LISTING TEXT (read this for the feature extraction below):
+{listing_text[:4000]}
+
+{("KEY FEATURES: " + "; ".join(key_features)) if key_features else ""}
+""" if wanted else ""
+
+    features_task = f"""
+"features": {{
+    {features_schema}
+  }},""" if wanted else ""
+
+    guidance = """
+For the feature extraction, read the listing text carefully and answer only
+from what it actually says:
+- Use "not_stated" whenever the listing is silent. Never infer from the property
+  type, the area, or what is typical — silence is a real answer and it is the
+  answer we want in that case.
+- Read negation correctly: "no off-street parking" is "none", not parking.
+- Distinguish private from shared: a communal garden or a residents' terrace is
+  "communal", not "private". A private balcony or terrace counts as "private".
+""" if wanted else ""
+
+    return f"""Write a short verdict on this property for a buyer whose profile is "{persona_label}".
+{extraction_block}
+FACTS (already calculated — use them, never recalculate or add new figures):
+{chr(10).join(facts)}
+
+HOW IT SCORES FOR THEM:
+{chr(10).join(scored) if scored else "- No dimensions could be scored."}
+Overall fit: {fit_score if fit_score is not None else 'not scored'}/100, based on {coverage}% of their stated priorities.
+{f"No data available for: {', '.join(missing)}." if missing else ""}
+
+Return a JSON object with this exact structure:
+{{{features_task}
+  "summary": "<the verdict, 2-4 sentences>"
+}}
+
+The verdict should cover:
+- What this property is really offering at this price, given its size and running costs.
+- The single strongest reason to pursue it and the single strongest reason not to.
+- Where the numbers above are incomplete, say what the buyer should check — do not
+  fill the gap with a guess.
+
+Weight your emphasis by their priorities: a weakness on a dimension they weighted
+highly matters far more than one they weighted near zero. Be direct, and do not
+restate the address or repeat the full list of figures back.
+{guidance}
+Return only the JSON object. No markdown fences, no text outside it."""

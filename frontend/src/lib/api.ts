@@ -7,10 +7,14 @@ import type {
   OfferStrategyResult,
   FetchedListing,
   SavedProperty,
-  JourneyStage,
   ChecklistItem,
+  Persona,
+  PersonaPreset,
+  DimensionMeta,
+  GeocodeResult,
+  AssessedProperty,
 } from '@/types'
-import { supabase } from './supabase'
+import { supabase, DEV_NO_AUTH } from './supabase'
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:8000',
@@ -19,9 +23,15 @@ const api = axios.create({
 
 // Attach Supabase JWT to every request when signed in
 api.interceptors.request.use(async config => {
-  const { data: { session } } = await supabase.auth.getSession()
-  if (session?.access_token) {
-    config.headers.Authorization = `Bearer ${session.access_token}`
+  if (DEV_NO_AUTH) return config
+  try {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session?.access_token) {
+      config.headers.Authorization = `Bearer ${session.access_token}`
+    }
+  } catch {
+    // Auth host unreachable — send unauthenticated rather than failing here, so
+    // the API decides. Without this a Supabase outage breaks every request.
   }
   return config
 })
@@ -39,9 +49,6 @@ api.interceptors.response.use(
 )
 
 // ── Journey ────────────────────────────────────────────────────────────────
-export const getJourneyStages = (): Promise<{ stages: JourneyStage[] }> =>
-  api.get('/api/v1/journey/stages').then(r => r.data)
-
 export const markStageProgress = (stage: string, status: 'in_progress' | 'complete') =>
   api.patch('/api/v1/journey/stage', { stage, status }).then(r => r.data)
 
@@ -122,66 +129,6 @@ export const uploadSurvey = (file: File, surveyLevel: string): Promise<SurveyInt
   }).then(r => r.data)
 }
 
-export default api
-
-// ── Stage 2: Neighbourhood Agent ───────────────────────────────────────────
-import type { NeighbourhoodResult } from '@/types'
-
-export interface NeighbourhoodInput {
-  postcode: string
-  buyer_priorities?: string[]
-}
-
-export const getNeighbourhoodBriefing = (
-  data: NeighbourhoodInput
-): Promise<NeighbourhoodResult> =>
-  api.post('/api/v1/evaluate/neighbourhood', data).then(r => r.data)
-
-export type NeighbourhoodStreamEvent =
-  | { event: 'tool_start'; tool: string }
-  | { event: 'tool_done'; tool: string }
-  | { event: 'complete'; data: NeighbourhoodResult }
-  | { event: 'error'; message: string }
-
-export async function streamNeighbourhoodBriefing(
-  data: NeighbourhoodInput,
-  onEvent: (e: NeighbourhoodStreamEvent) => void,
-): Promise<void> {
-  const { data: { session } } = await supabase.auth.getSession()
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`
-
-  const baseURL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
-  const response = await fetch(`${baseURL}/api/v1/evaluate/neighbourhood/stream`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(data),
-  })
-
-  if (!response.ok) throw new Error(`Request failed: ${response.status}`)
-  if (!response.body) throw new Error('No response body')
-
-  const reader = response.body.getReader()
-  const decoder = new TextDecoder()
-  let buffer = ''
-
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-    buffer += decoder.decode(value, { stream: true })
-    const lines = buffer.split('\n')
-    buffer = lines.pop() ?? ''
-    for (const line of lines) {
-      if (line.startsWith('data: ')) {
-        try {
-          const evt = JSON.parse(line.slice(6)) as NeighbourhoodStreamEvent
-          onEvent(evt)
-        } catch { /* skip malformed */ }
-      }
-    }
-  }
-}
-
 // ── Viewing Question Generator ───────────────────────────────────────────────
 export interface ViewingQuestionCategory {
   name: string
@@ -218,3 +165,31 @@ export const getChecklist = (): Promise<ChecklistResponse> =>
 
 export const toggleChecklistItem = (id: string, is_complete: boolean): Promise<ChecklistItem> =>
   api.patch(`/api/v1/checklist/${id}`, { is_complete }).then(r => r.data)
+
+// ── Persona ────────────────────────────────────────────────────────────────
+export const getPersonaPresets = (): Promise<{ presets: PersonaPreset[]; dimensions: DimensionMeta[] }> =>
+  api.get('/api/v1/persona/presets').then(r => r.data)
+
+export const getPersona = (): Promise<Persona | null> =>
+  api.get('/api/v1/persona').then(r => r.data)
+
+export const savePersona = (persona: Persona): Promise<Persona> =>
+  api.put('/api/v1/persona', persona).then(r => r.data)
+
+export const geocodePlace = (query: string): Promise<GeocodeResult> =>
+  api.post('/api/v1/geocode', { query }).then(r => r.data)
+
+// ── Property assessment ────────────────────────────────────────────────────
+export const assessProperty = (url: string): Promise<AssessedProperty> =>
+  api.post('/api/v1/properties/assess', { url }).then(r => r.data)
+
+export const listAssessedProperties = (): Promise<AssessedProperty[]> =>
+  api.get('/api/v1/properties/assessed').then(r => r.data)
+
+export const generatePropertySummary = (id: string): Promise<AssessedProperty> =>
+  api.post(`/api/v1/properties/${id}/summary`).then(r => r.data)
+
+export const rescoreProperties = (): Promise<AssessedProperty[]> =>
+  api.post('/api/v1/properties/rescore').then(r => r.data)
+
+export default api

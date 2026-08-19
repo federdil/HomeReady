@@ -1,6 +1,8 @@
 # Environment secrets — never commit these
 backend/.env
 frontend/.env.local
+*.backup-supabase
+frontend/.env.production.local
 
 # Python
 backend/venv/

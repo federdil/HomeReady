@@ -30,18 +30,29 @@ class CostCalculatorRequest(BaseModel):
     postcode: str = Field(..., min_length=3, description="UK postcode")
     is_first_time_buyer: bool = True
     deposit_amount: float = Field(..., gt=0)
+    survey_level: str = "level_2"
+    bedrooms: Optional[int] = None
 
 class CostBreakdownItem(BaseModel):
     label: str
     amount: float
     note: str = ""
+    # Statutory costs are computed from published rate scales and are exact.
+    # Everything else is a labelled estimate.
+    statutory: bool = False
 
 class CostCalculatorResponse(BaseModel):
     property_price: float
-    total_cost: float
-    breakdown: list[CostBreakdownItem]
+    deposit: float
+    loan_amount: float
+    ltv: float
     stamp_duty: float
+    fees_total: float
+    total_cost: float
+    cash_needed: float
+    breakdown: list[CostBreakdownItem]
     advice: str
+    rates_effective_from: str
 
 
 # ── Feature: Listing Decoder ──────────────────────────────────────────────
@@ -149,53 +160,6 @@ class StageUpdateRequest(BaseModel):
     metadata: Optional[dict] = None
 
 
-# ── Agent: Neighbourhood Intelligence ─────────────────────────────────────
-class NeighbourhoodRequest(BaseModel):
-    postcode: str = Field(..., min_length=3, description="UK postcode, e.g. 'E1 6RF'")
-    buyer_priorities: Optional[list[str]] = Field(
-        default=None,
-        description="Optional list of buyer priorities, e.g. ['commute', 'schools']"
-    )
-
-class TransportSummary(BaseModel):
-    score: int
-    summary: str
-    nearest_stations: list[str]
-    central_london_commute: str
-
-class FloodRiskSummary(BaseModel):
-    risk_level: str  # "low" | "medium" | "high" | "very_high"
-    summary: str
-    action: str
-
-class SchoolsSummary(BaseModel):
-    score: int
-    summary: str
-    notable_schools: list[str]
-
-class AreaCharacter(BaseModel):
-    vibe: str
-    amenities: list[str]
-    safety_note: str
-
-class BuyerFit(BaseModel):
-    good_for: list[str]
-    less_good_for: list[str]
-
-class NeighbourhoodResponse(BaseModel):
-    postcode: str
-    area_name: str
-    overall_score: int
-    headline: str
-    transport: TransportSummary
-    flood_risk: FloodRiskSummary
-    schools: SchoolsSummary
-    area_character: AreaCharacter
-    buyer_fit: BuyerFit
-    key_risks: list[str]
-    data_sources: list[str]
-
-
 # ── Rightmove URL fetch ───────────────────────────────────────────────────
 class FetchListingRequest(BaseModel):
     url: str
@@ -214,6 +178,9 @@ class FetchListingResponse(BaseModel):
     lease_years: Optional[int] = None
     epc_rating: Optional[str] = None
     rightmove_url: str
+    # False when Rightmove returns 410 — the listing has been sold, let, or
+    # withdrawn. The data is still complete; only its availability changed.
+    is_active: bool = True
 
 
 # ── Saved properties (shortlist) ──────────────────────────────────────────
@@ -288,3 +255,88 @@ class ChecklistResponse(BaseModel):
 
 class ChecklistToggleRequest(BaseModel):
     is_complete: bool
+
+
+# ── Persona ───────────────────────────────────────────────────────────────
+class WorkplaceIn(BaseModel):
+    label: str = Field(..., min_length=1, max_length=80)
+    postcode: Optional[str] = None
+    latitude: float
+    longitude: float
+    max_minutes: int = Field(45, ge=5, le=180)
+    modes: Optional[str] = None
+
+
+class PersonaRequest(BaseModel):
+    label: str = "My search"
+    preset_key: Optional[str] = None
+    price_min: Optional[int] = Field(None, ge=0)
+    price_max: Optional[int] = Field(None, ge=0)
+    deposit: Optional[int] = Field(None, ge=0)
+    min_bedrooms: int = Field(1, ge=0, le=10)
+    needs_outdoor_space: bool = False
+    needs_parking: bool = False
+    property_types: list[str] = []
+    min_lease_years: Optional[int] = Field(None, ge=0, le=999)
+    weights: dict[str, int] = {}
+    workplaces: list[WorkplaceIn] = []
+
+
+class PersonaResponse(PersonaRequest):
+    id: str
+
+
+class PersonaPresetResponse(BaseModel):
+    key: str
+    label: str
+    description: str
+    weights: dict[str, int]
+    min_bedrooms: int
+    needs_outdoor_space: bool
+    needs_parking: bool
+
+
+class DimensionMeta(BaseModel):
+    key: str
+    label: str
+    blurb: str
+
+
+class GeocodeRequest(BaseModel):
+    query: str = Field(..., min_length=2, max_length=200)
+
+
+class GeocodeResponse(BaseModel):
+    found: bool
+    label: str = ""
+    postcode: str = ""
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    reason: Optional[str] = None
+
+
+# ── Property assessment ───────────────────────────────────────────────────
+class AssessPropertyRequest(BaseModel):
+    url: Optional[str] = None
+    listing_text: Optional[str] = None
+    postcode: Optional[str] = None
+    price: Optional[float] = None
+    save: bool = True
+
+
+class AssessedPropertyResponse(BaseModel):
+    id: Optional[str] = None
+    rightmove_url: Optional[str] = None
+    address: Optional[str] = None
+    postcode: Optional[str] = None
+    price: Optional[float] = None
+    property_type: Optional[str] = None
+    bedrooms: Optional[int] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    fit_score: Optional[int] = None
+    fit_coverage: Optional[int] = None
+    enrichment: dict = {}
+    decoded_result: Optional[dict] = None
+    notes: Optional[str] = None
+    is_active: bool = True

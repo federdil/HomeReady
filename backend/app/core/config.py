@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     environment: str = "development"
     cors_origins: str = "http://localhost:5173"
     secret_key: str = "change-me"
+    # Local development only: skip Supabase token verification and attribute all
+    # requests to DEV_USER_ID. Only honoured when environment == "development".
+    dev_no_auth: bool = False
 
     @property
     def cors_origins_list(self) -> list[str]:

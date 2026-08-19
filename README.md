@@ -11,9 +11,13 @@ HomeReady guides buyers through every stage of the property purchase journey —
 | Stage | Feature | Description |
 |-------|---------|-------------|
 | 1 — Financial Readiness | **Cost Calculator** | True total cost of buying — Stamp Duty, legal fees, surveys, and more |
-| 2 — Property Evaluation | **Listing Decoder** | Decodes estate agent language, flags red flags, generates viewing questions |
+| 2 — Property Evaluation | **Listing Decoder** | Decodes estate agent language, flags red flags, trust score |
+| 2 — Property Evaluation | **Viewing Question Generator** | Tailored viewing questions by property type, tenure, and red flags |
 | 2 — Property Evaluation | **Neighbourhood Briefing** | AI agent calls live APIs (TfL, flood risk, Ofsted) to build an honest area briefing |
+| 2 — Property Evaluation | **My Shortlist** | Save, annotate, and review properties; sort by trust score, price, or date |
+| 3 — Offer & Negotiation | **Offer Strategy** | Recommended offer, leverage points, negotiation script, and walkaway price |
 | 4 — Legal & Survey | **Document Explainer** | Explains conveyancing documents clause-by-clause in plain English |
+| 4 — Legal & Survey | **Survey Interpreter** | Categorises survey findings (critical / significant / advisory) with renegotiation points |
 | 6 — Homeowner Mode | **Post-Completion Checklist** | Interactive checklist of everything to do after getting the keys |
 
 ---
@@ -28,6 +32,8 @@ HomeReady guides buyers through every stage of the property purchase journey —
 | Auth | Supabase Auth |
 | Database | Supabase PostgreSQL |
 | Migrations | Alembic |
+| Frontend deploy | Vercel |
+| Backend deploy | Railway (auto-deploy via GitHub) |
 
 ---
 
@@ -107,7 +113,47 @@ npm run dev
 
 ---
 
+## Running Locally Without Supabase
+
+The hosted Supabase project and Railway service were torn down in August 2026. Until
+they are re-provisioned, the app runs entirely on a local Postgres with auth bypassed.
+
+Start Postgres and create the database:
+
+```bash
+/Applications/Postgres.app/Contents/Versions/18/bin/pg_ctl -D "$HOME/Library/Application Support/Postgres/var-18" -l /tmp/pg.log start
+```
+
+```bash
+createdb -h localhost homeready
+```
+
+`backend/.env` needs a local database URL and the dev auth flag:
+```
+DATABASE_URL=postgresql+asyncpg://<your-mac-username>@localhost:5432/homeready
+ENVIRONMENT=development
+DEV_NO_AUTH=true
+```
+
+`frontend/.env.local` needs the matching flag:
+```
+VITE_DEV_NO_AUTH=true
+```
+
+With `DEV_NO_AUTH` set, every request is attributed to the fixed UUID
+`00000000-0000-0000-0000-0000000000de`, so journey progress, shortlist, and checklist
+data persist locally across restarts. The bypass is ignored unless `ENVIRONMENT` is
+`development`, and both flags default to off — **never set either in Railway or Vercel.**
+
+The original Supabase values are preserved in `backend/.env.backup-supabase` and
+`frontend/.env.local.backup-supabase`.
+
+To go back to hosted Supabase: remove both flags, restore the credentials from those
+backups, and run `alembic upgrade head` against the new project.
+
+---
+
 ## Deployment
 
-- **Backend:** [Railway](https://railway.app) — set all `backend/.env` variables in the Railway dashboard
-- **Frontend:** [Vercel](https://vercel.com) — set all `frontend/.env.local` variables in the Vercel dashboard
+- **Backend:** [Railway](https://railway.app) — auto-deploys from the `main` branch. Set all `backend/.env` variables in the Railway dashboard.
+- **Frontend:** [Vercel](https://vercel.com) — deploy via `npx vercel --prod` from the `frontend/` directory. Set all `frontend/.env.local` variables in the Vercel dashboard.

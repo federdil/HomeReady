@@ -39,6 +39,13 @@ class RightmoveError(Exception):
         self.user_message = message
 
 
+def _normalise_address(raw: str) -> str:
+    """Some agents type addresses across multiple lines. Collapse the newlines
+    so the address renders on one line in the UI rather than showing raw
+    carriage returns."""
+    return " ".join(raw.split()).strip().strip(",")
+
+
 def extract_property_id(url: str) -> str:
     m = RIGHTMOVE_PATTERN.search(url)
     if not m:
@@ -66,7 +73,7 @@ async def fetch_listing(url: str) -> dict:
             raise RightmoveError(
                 "Rightmove took too long to respond. Try again or paste the listing text manually."
             )
-        except httpx.RequestError as e:
+        except httpx.RequestError:
             raise RightmoveError(
                 "Could not reach Rightmove. Check the URL or paste the listing text manually."
             )
@@ -77,15 +84,23 @@ async def fetch_listing(url: str) -> dict:
         )
     if resp.status_code == 404:
         raise RightmoveError(
-            "That property listing wasn't found — it may have been removed from Rightmove."
+            "That property listing wasn't found — check the link is complete."
         )
-    if resp.status_code != 200:
+
+    # 410 Gone means the listing is no longer being advertised — almost always
+    # sold, let, or withdrawn. The page still carries the full property data,
+    # so parse it and mark it inactive rather than throwing the listing away:
+    # a buyer pasting a link to something that just sold needs to be told it
+    # sold, not handed a generic error.
+    if resp.status_code not in (200, 410):
         raise RightmoveError(
             f"Rightmove returned an unexpected error ({resp.status_code}). "
             "Try pasting the listing text manually."
         )
 
-    return _parse_page(resp.text, canonical_url)
+    listing = _parse_page(resp.text, canonical_url)
+    listing["is_active"] = resp.status_code == 200
+    return listing
 
 
 def _decode_page_model(html: str) -> dict:
@@ -165,7 +180,7 @@ def _extract_from_page_model(arr: list, pd: dict, url: str) -> dict:
     # Address
     addr_schema_idx = pd.get("address")
     addr_schema = arr[addr_schema_idx] if addr_schema_idx is not None else {}
-    address = _get(arr, addr_schema, "displayAddress") or ""
+    address = _normalise_address(_get(arr, addr_schema, "displayAddress") or "")
     outcode = _get(arr, addr_schema, "outcode") or ""
     incode = _get(arr, addr_schema, "incode") or ""
     postcode = f"{outcode} {incode}".strip()
@@ -223,6 +238,11 @@ def _extract_from_page_model(arr: list, pd: dict, url: str) -> dict:
     tenure_schema = arr[tenure_schema_idx] if tenure_schema_idx is not None else {}
     tenure_type = _get(arr, tenure_schema, "tenureType") or ""
     lease_years = _get(arr, tenure_schema, "yearsRemainingOnLease")
+    # Rightmove sends 0 when the agent has not supplied a term. Treating that
+    # as a zero-year lease would fail every requirement check and imply the
+    # flat is unmortgageable, which is a very different claim from "unknown".
+    if not lease_years:
+        lease_years = None
 
     # Listing history / days on market
     lh_schema_idx = pd.get("listingHistory")
@@ -233,7 +253,10 @@ def _extract_from_page_model(arr: list, pd: dict, url: str) -> dict:
         dom = _get(arr, lh_schema, "daysOnMarket")
         if isinstance(dom, int):
             days_on_market = dom
-        # Count price reductions from history items
+        # Count price reductions from history items.
+        # Rightmove serialises this either as a list or as an index map; the
+        # previous code built the list branch and then never read it, so a
+        # reduction was only ever counted in the dict case.
         items_idx = lh_schema.get("listingHistoryItems")
         if items_idx is not None:
             items_val = arr[items_idx]
@@ -244,13 +267,17 @@ def _extract_from_page_model(arr: list, pd: dict, url: str) -> dict:
                 for i in range(len(items_val)):
                     ii = items_val.get(str(i)) or items_val.get(i)
                     if ii is not None:
-                        item = arr[ii]
-                        if isinstance(item, dict):
-                            reason_idx = item.get("listingUpdateReason")
-                            if reason_idx is not None:
-                                reason = arr[reason_idx]
-                                if isinstance(reason, str) and "reduc" in reason.lower():
-                                    reduction_count += 1
+                        items.append(arr[ii])
+
+            for item in items:
+                if not isinstance(item, dict):
+                    continue
+                reason_idx = item.get("listingUpdateReason")
+                if reason_idx is None:
+                    continue
+                reason = arr[reason_idx]
+                if isinstance(reason, str) and "reduc" in reason.lower():
+                    reduction_count += 1
 
     # Photo count
     images_idx = pd.get("images")
@@ -276,6 +303,74 @@ def _extract_from_page_model(arr: list, pd: dict, url: str) -> dict:
                     curr_idx = eer_schema.get("current")
                     if curr_idx is not None:
                         epc_rating = arr[curr_idx]
+
+    # ── Running costs & floor area ────────────────────────────────────────
+    # Rightmove publishes these under livingCosts/sizings but the previous
+    # extraction ignored them, so service charge and council tax band — the
+    # costs a buyer carries every year for as long as they own the place —
+    # never reached the product.
+    lc_idx = pd.get("livingCosts")
+    lc = arr[lc_idx] if lc_idx is not None else {}
+    annual_service_charge = _get(arr, lc, "annualServiceCharge")
+    annual_ground_rent = _get(arr, lc, "annualGroundRent")
+    council_tax_band = _get(arr, lc, "councilTaxBand")
+    # Rightmove uses the literal string "TBC" when the agent has not supplied
+    # the band. That is absence, not a band.
+    if isinstance(council_tax_band, str) and council_tax_band.strip().upper() in ("TBC", "", "NOT AVAILABLE"):
+        council_tax_band = None
+
+    floor_area_sqft = None
+    sz_idx = pd.get("sizings")
+    if sz_idx is not None:
+        sizings = arr[sz_idx]
+        entries = sizings if isinstance(sizings, list) else []
+        for entry in entries:
+            node = arr[entry] if isinstance(entry, int) else entry
+            if not isinstance(node, dict):
+                continue
+            unit = _get(arr, node, "unit")
+            if unit != "sqft":
+                continue
+            size = _get(arr, node, "maximumSize") or _get(arr, node, "minimumSize")
+            if isinstance(size, (int, float)) and size > 0:
+                floor_area_sqft = int(size)
+            break
+
+    # Archived is Rightmove's own flag for a listing no longer advertised —
+    # more direct than inferring it from the HTTP status.
+    status_idx = pd.get("status")
+    archived = bool(_get(arr, arr[status_idx], "archived")) if status_idx is not None else False
+
+    # ── Structured feature flags (Material Information) ───────────────────
+    # Agents are obliged to complete these, so they are a far better signal
+    # than substring-matching the description — which cannot see negation and
+    # scored "no garden and no parking" as having both.
+    #
+    # An empty list means "not stated", NOT "no". The two are different claims
+    # and are kept distinct all the way through to scoring.
+    feat_idx = pd.get("features")
+    features_node = arr[feat_idx] if feat_idx is not None else {}
+
+    def _feature_flag(name: str) -> str | None:
+        """Returns the agent's stated value, or None when they left it blank."""
+        if not isinstance(features_node, dict):
+            return None
+        idx = features_node.get(name)
+        if idx is None:
+            return None
+        entries = arr[idx]
+        if not isinstance(entries, list) or not entries:
+            return None
+        first = arr[entries[0]] if isinstance(entries[0], int) else entries[0]
+        if isinstance(first, dict):
+            display = first.get("displayText")
+            value = arr[display] if isinstance(display, int) else display
+            return str(value) if value else None
+        return str(first) if first else None
+
+    garden_flag = _feature_flag("garden")
+    parking_flag = _feature_flag("parking")
+    accessibility_flag = _feature_flag("accessibility")
 
     # Build text block for Claude
     parts = []
@@ -304,6 +399,14 @@ def _extract_from_page_model(arr: list, pd: dict, url: str) -> dict:
         parts.append(f"Number of listing photos: {photo_count}")
     if epc_rating:
         parts.append(f"EPC rating: {epc_rating}")
+    if floor_area_sqft:
+        parts.append(f"Floor area: {floor_area_sqft:,} sq ft")
+    if annual_service_charge:
+        parts.append(f"Annual service charge: £{annual_service_charge:,.0f}")
+    if annual_ground_rent:
+        parts.append(f"Annual ground rent: £{annual_ground_rent:,.0f}")
+    if council_tax_band:
+        parts.append(f"Council tax band: {council_tax_band}")
     if key_features:
         parts.append("Key features:\n" + "\n".join(f"- {f}" for f in key_features))
     if description:
@@ -328,6 +431,15 @@ def _extract_from_page_model(arr: list, pd: dict, url: str) -> dict:
         "tenure_type": tenure_type,
         "lease_years": lease_years,
         "epc_rating": epc_rating,
+        "floor_area_sqft": floor_area_sqft,
+        "annual_service_charge": annual_service_charge,
+        "annual_ground_rent": annual_ground_rent,
+        "council_tax_band": council_tax_band,
+        "archived": archived,
+        "key_features": key_features,
+        "garden_flag": garden_flag,
+        "parking_flag": parking_flag,
+        "accessibility_flag": accessibility_flag,
         "rightmove_url": url,
     }
 
@@ -344,7 +456,7 @@ def _extract_from_html(soup: BeautifulSoup, url: str) -> dict:
 
     # Address
     addr_el = soup.find("h1", {"itemprop": "name"}) or soup.find("address")
-    address = addr_el.get_text(strip=True) if addr_el else ""
+    address = _normalise_address(addr_el.get_text(strip=True) if addr_el else "")
 
     if not description and not address:
         raise RightmoveError(

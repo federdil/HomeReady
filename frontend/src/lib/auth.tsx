@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
-import { supabase } from './supabase'
+import { supabase, DEV_NO_AUTH, DEV_USER_ID } from './supabase'
+
+const DEV_USER = { id: DEV_USER_ID, email: 'dev@localhost' } as User
 
 interface AuthContextValue {
   user: User | null
@@ -19,18 +21,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
+    if (DEV_NO_AUTH) {
+      setUser(DEV_USER)
       setLoading(false)
-    })
+      return
+    }
+
+    let active = true
+
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        if (!active) return
+        setSession(session)
+        setUser(session?.user ?? null)
+      })
+      .catch(err => {
+        // Reaching here means the auth host is unreachable, not that the user is
+        // signed out. Clearing loading anyway sends them to the sign-in page
+        // instead of leaving the app on a spinner forever.
+        console.error('Could not reach Supabase auth:', err)
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
       setUser(session?.user ?? null)
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      active = false
+      subscription.unsubscribe()
+    }
   }, [])
 
   const signUp = async (email: string, password: string) => {
@@ -44,6 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signOut = async () => {
+    if (DEV_NO_AUTH) return
     await supabase.auth.signOut()
   }
 
