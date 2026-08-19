@@ -16,6 +16,7 @@ import OfferPage from '@/pages/OfferPage'
 import ShortlistPage from '@/pages/ShortlistPage'
 import { PrimaryButton } from '@/components/ui'
 import { Logo, LogoMark } from '@/components/Logo'
+import { Analytics } from '@vercel/analytics/react'
 import {
   Home, Loader2, LogOut, User, PoundSterling, Search, FileText,
   ClipboardCheck, Menu, X, Handshake, Map as MapIcon, SlidersHorizontal, Save,
@@ -278,6 +279,9 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AuthProvider>
+          {/* Page views and referrers. Cookieless and no personal data, so it
+              needs no consent banner. */}
+          <Analytics />
           <div className="bg-wash" aria-hidden="true" />
           <Routes>
             <Route path="/auth" element={<AuthPublic />} />
