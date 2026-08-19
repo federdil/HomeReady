@@ -17,3 +17,13 @@ frontend/dist/
 
 # macOS
 .DS_Store
+
+# Internal planning and strategy documents — kept locally, not published
+CEO_Assessment.md
+HANDOFF.md
+HomeReady_PRD*.html
+HomeReady_PRD*.docx
+HomeReady_Pitch_Deck.pptx
+homeready-market-research.html
+neighbourhood_agent_analysis.md
+tracker.html
