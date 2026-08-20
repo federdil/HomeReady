@@ -297,6 +297,7 @@ def value_summary_prompt(
     key_features: list[str] | None = None,
     wants_outdoor_space: bool = False,
     wants_parking: bool = False,
+    wants_period: bool = False,
 ) -> str:
     """Two jobs in one call: extract the feature facts the structured fields
     cannot express, and write the verdict.
@@ -338,6 +339,11 @@ def value_summary_prompt(
         wanted.append('"outdoor_space": "private" | "communal" | "none" | "not_stated"')
     if wants_parking:
         wanted.append('"parking": "allocated" | "permit" | "none" | "not_stated"')
+    if wants_period:
+        wanted.append(
+            '"period": "georgian" | "victorian" | "edwardian" | "interwar" | '
+            '"postwar" | "modern" | "new_build" | "not_stated"'
+        )
     features_schema = ",\n    ".join(wanted) if wanted else ""
 
     extraction_block = f"""
@@ -363,6 +369,20 @@ from what it actually says:
   "communal", not "private". A private balcony or terrace counts as "private".
 """ if wanted else ""
 
+    period_guidance = """
+For "period", answer about the building the buyer would be living in:
+- A named era ("Victorian terrace", "1930s semi", "Georgian townhouse") is that
+  era, even if the flat inside was refurbished last year. A refurbishment date
+  is not a build date.
+- "new_build" is for a building that is itself new or nearly new — a new
+  development, off-plan, or first occupation. A period building converted into
+  flats is the period, not a new build, however recent the conversion.
+- A nearby landmark is not the property. "Opposite the Victorian schoolhouse"
+  and "moments from Victoria Park" say nothing about when this was built.
+- If the listing only implies an era from the photographs or the area, that is
+  "not_stated". Most listings are, and saying so is the useful answer.
+""" if wants_period else ""
+
     return f"""Write a short verdict on this property for a buyer whose profile is "{persona_label}".
 {extraction_block}
 FACTS (already calculated — use them, never recalculate or add new figures):
@@ -387,5 +407,5 @@ The verdict should cover:
 Weight your emphasis by their priorities: a weakness on a dimension they weighted
 highly matters far more than one they weighted near zero. Be direct, and do not
 restate the address or repeat the full list of figures back.
-{guidance}
+{guidance}{period_guidance}
 Return only the JSON object. No markdown fences, no text outside it."""

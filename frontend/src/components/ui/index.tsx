@@ -16,17 +16,6 @@ export function SolidCard({ children, className }: { children: React.ReactNode; 
   return <div className={cn('card p-6', className)}>{children}</div>
 }
 
-// ── Stage pill ────────────────────────────────────────────────────────────────
-
-export function StagePill({ label }: { label: string }) {
-  return (
-    <span className="stage-pill">
-      <span className="stage-pill-dot" />
-      {label}
-    </span>
-  )
-}
-
 // ── Risk badge ────────────────────────────────────────────────────────────────
 
 type RiskLevel = 'low' | 'amber' | 'red' | 'critical'
@@ -126,10 +115,15 @@ export function GhostButton({
 
 // ── Page header ───────────────────────────────────────────────────────────────
 
+/**
+ * No stage number. These pages were once six numbered steps of a linear
+ * journey; they are now tools, opened when the question comes up and mostly
+ * visited once. Numbering them implied an order nobody follows and a position
+ * in a sequence that no longer exists.
+ */
 export function PageHeader({
-  stage, title, description, action,
+  title, description, action,
 }: {
-  stage: string
   title: string
   description: string
   action?: React.ReactNode
@@ -138,8 +132,7 @@ export function PageHeader({
     <div className="page-header">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="flex-1 min-w-0">
-          <StagePill label={stage} />
-          <h1 className="font-display text-2xl md:text-3xl text-ink mt-3 mb-2 text-balance">
+          <h1 className="font-display text-2xl md:text-3xl text-ink mb-2 text-balance">
             {title}
           </h1>
           <p className="text-base text-ink-muted max-w-2xl leading-relaxed">

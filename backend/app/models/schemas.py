@@ -266,6 +266,17 @@ class WorkplaceIn(BaseModel):
     modes: Optional[str] = None
 
 
+class PreferredAreaIn(BaseModel):
+    """Somewhere the buyer already wants to live, as opposed to somewhere they
+    have to get to. No journey-time target — the question is proximity, not
+    travel."""
+    label: str = Field(..., min_length=1, max_length=80)
+    postcode: Optional[str] = None
+    latitude: float
+    longitude: float
+    district: Optional[str] = None
+
+
 class PersonaRequest(BaseModel):
     label: str = "My search"
     preset_key: Optional[str] = None
@@ -276,9 +287,11 @@ class PersonaRequest(BaseModel):
     needs_outdoor_space: bool = False
     needs_parking: bool = False
     property_types: list[str] = []
+    preferred_periods: list[str] = []
     min_lease_years: Optional[int] = Field(None, ge=0, le=999)
     weights: dict[str, int] = {}
     workplaces: list[WorkplaceIn] = []
+    preferred_areas: list[PreferredAreaIn] = []
 
 
 class PersonaResponse(PersonaRequest):
@@ -293,12 +306,26 @@ class PersonaPresetResponse(BaseModel):
     min_bedrooms: int
     needs_outdoor_space: bool
     needs_parking: bool
+    property_types: list[str] = []
+    preferred_periods: list[str] = []
 
 
 class DimensionMeta(BaseModel):
     key: str
     label: str
     blurb: str
+    # The rule behind the number, in plain English — what the client shows when
+    # the buyer asks how a dimension is scored.
+    method: str = ""
+    source: str = ""
+
+
+class OptionMeta(BaseModel):
+    """A choice offered in the profile form. Held on the server so the labels
+    and the keys that drive scoring cannot drift apart."""
+    key: str
+    label: str
+    blurb: str = ""
 
 
 class GeocodeRequest(BaseModel):
@@ -309,9 +336,23 @@ class GeocodeResponse(BaseModel):
     found: bool
     label: str = ""
     postcode: str = ""
+    district: str = ""
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     reason: Optional[str] = None
+
+
+class PlaceSuggestion(BaseModel):
+    label: str
+    description: str
+    postcode: str = ""
+    district: str = ""
+    latitude: float
+    longitude: float
+
+
+class PlaceSuggestResponse(BaseModel):
+    suggestions: list[PlaceSuggestion] = []
 
 
 # ── Property assessment ───────────────────────────────────────────────────

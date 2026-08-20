@@ -90,7 +90,6 @@ export default function ReadinessPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        stage="Stage 1 — Financial Readiness"
         title="Cost Calculator"
         description="See the true total cost of buying — beyond the asking price. Includes Stamp Duty, legal fees, surveys, and every other expense first-time buyers are often surprised by."
       />

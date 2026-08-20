@@ -88,7 +88,24 @@ cd backend && python -m pytest tests/ -q
 
 The suite covers the rate tables at every band boundary, the rule that missing
 data is excluded rather than imputed, requirement matching including negation,
-and the listing parser's handling of withdrawn and malformed listings.
+the Greater London boundary check on workplaces and preferred areas, and the
+listing parser's handling of withdrawn and malformed listings.
+
+### Recalibrating the safety score
+
+`LONDON_CRIME_PERCENTILES` in
+[`backend/app/services/scoring.py`](../backend/app/services/scoring.py) is a
+sample of monthly recorded crime within 800 m of 191 randomly drawn Greater
+London postcodes. The safety score is a position within that distribution
+rather than an absolute judgement, so if London's overall level moves the
+constants have to move with it.
+
+To rebuild it, draw random postcodes from `api.postcodes.io/random/postcodes`,
+keep the ones whose `region` is `London`, query
+`data.police.uk/api/crimes-street/all-crime` with the same 800 m polygon
+`app/services/providers/crime.py` builds, and take the percentiles of the
+resulting counts. Keep the sample above ~150 postcodes; the distribution has a
+long right tail and a smaller sample moves the upper percentiles a lot.
 
 ```bash
 cd frontend && npx tsc --noEmit

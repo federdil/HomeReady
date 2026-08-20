@@ -66,3 +66,114 @@ def test_leasehold_with_no_costs_gets_a_pointed_reason():
     signal = build_running_costs({"price": 500_000, "tenure_type": "LEASEHOLD"})
     assert not signal.ok
     assert "leasehold" in signal.reason.lower()
+
+
+# ── The London boundary ────────────────────────────────────────────────────
+# HomeReady covers London because TfL's journey planner does. A workplace or a
+# preferred area outside it is not a lookup that failed — it resolves perfectly
+# well — so it has to be refused explicitly, or every property gets scored
+# against a journey nobody can plan.
+
+from app.services.providers import geocode  # noqa: E402
+
+
+class _FakeResponse:
+    def __init__(self, status_code, payload):
+        self.status_code = status_code
+        self._payload = payload
+
+    def json(self):
+        return self._payload
+
+
+def _postcode_payload(**overrides):
+    base = {
+        "postcode": "E2 9FJ", "latitude": 51.531282, "longitude": -0.05633,
+        "eastings": 535_000, "northings": 182_000, "admin_district": "Tower Hamlets",
+        "admin_ward": "Bethnal Green West", "region": "London",
+        "lsoa": "Tower Hamlets 015A", "codes": {"lsoa": "E01004304"},
+    }
+    base.update(overrides)
+    return base
+
+
+@pytest.mark.asyncio
+async def test_a_london_postcode_resolves(monkeypatch):
+    async def fake_get(url, **kwargs):
+        return _FakeResponse(200, {"result": _postcode_payload()})
+
+    monkeypatch.setattr(geocode.client, "get", fake_get)
+    signal = await geocode.geocode_address("E2 9FJ")
+    assert signal.ok
+    assert signal.value.is_london
+
+
+@pytest.mark.asyncio
+async def test_a_valid_postcode_outside_london_is_refused_by_name(monkeypatch):
+    """Manchester is a real postcode that resolves cleanly. Accepting it would
+    leave every commute unscored with no explanation."""
+    async def fake_get(url, **kwargs):
+        return _FakeResponse(200, {"result": _postcode_payload(
+            postcode="M1 1AE", latitude=53.4794, longitude=-2.2359,
+            admin_district="Manchester", region="North West",
+        )})
+
+    monkeypatch.setattr(geocode.client, "get", fake_get)
+    signal = await geocode.geocode_address("M1 1AE")
+    assert not signal.ok
+    assert "Manchester" in signal.reason
+    assert "London" in signal.reason
+
+
+@pytest.mark.asyncio
+async def test_the_home_counties_are_outside_london(monkeypatch):
+    """The reason a bounding box is not enough: Watford sits inside any
+    rectangle drawn round London, and is not in it."""
+    async def fake_get(url, **kwargs):
+        return _FakeResponse(200, {"result": _postcode_payload(
+            postcode="WD17 2DN", latitude=51.6562, longitude=-0.3903,
+            admin_district="Watford", region="East of England",
+        )})
+
+    monkeypatch.setattr(geocode.client, "get", fake_get)
+    assert not (await geocode.geocode_address("WD17 2DN")).ok
+
+
+@pytest.mark.asyncio
+async def test_a_place_name_is_checked_against_the_boundary_not_the_search_box(
+    monkeypatch,
+):
+    """OpenStreetMap answers with coordinates, not a region. Those coordinates
+    are reverse-looked-up before anything is accepted."""
+    async def fake_get(url, **kwargs):
+        if "postcodes.io/postcodes/" in url:
+            return _FakeResponse(404, {})
+        if "nominatim" in url:
+            return _FakeResponse(200, [{"lat": "51.6562", "lon": "-0.3903"}])
+        # The reverse lookup.
+        return _FakeResponse(200, {"result": [_postcode_payload(
+            postcode="WD17 2DN", admin_district="Watford",
+            region="East of England",
+        )]})
+
+    monkeypatch.setattr(geocode.client, "get", fake_get)
+    signal = await geocode.geocode_address("Watford Junction")
+    assert not signal.ok
+    assert "Watford" in signal.reason
+
+
+@pytest.mark.asyncio
+async def test_an_unconfirmable_place_is_refused_rather_than_assumed_london(
+    monkeypatch,
+):
+    """No nearby postcode means no way to check the region. Accepting it would
+    put a pin somewhere we cannot score."""
+    async def fake_get(url, **kwargs):
+        if "postcodes.io/postcodes/" in url:
+            return _FakeResponse(404, {})
+        if "nominatim" in url:
+            return _FakeResponse(200, [{"lat": "51.5", "lon": "-0.1"}])
+        return _FakeResponse(200, {"result": []})
+
+    monkeypatch.setattr(geocode.client, "get", fake_get)
+    assert not (await geocode.geocode_address("Somewhere odd")).ok

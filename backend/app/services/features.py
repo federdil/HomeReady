@@ -213,6 +213,10 @@ async def summarise_value(
 
     wants_outdoor = bool(getattr(persona, "needs_outdoor_space", False))
     wants_parking = bool(getattr(persona, "needs_parking", False))
+    # Only asked for when the buyer has stated a preference. Extracting a
+    # period nobody cares about spends tokens and invites the model to assert
+    # one where the listing is silent.
+    wants_period = bool(getattr(persona, "preferred_periods", None))
 
     try:
         raw = await ask_claude(
@@ -240,6 +244,7 @@ async def summarise_value(
                 key_features=listing.get("key_features") or [],
                 wants_outdoor_space=wants_outdoor,
                 wants_parking=wants_parking,
+                wants_period=wants_period,
             ),
             system=VALUE_SUMMARY_SYSTEM,
             max_tokens=700,

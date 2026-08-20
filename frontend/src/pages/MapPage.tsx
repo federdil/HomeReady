@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from 'react-leaflet'
@@ -13,9 +13,12 @@ import {
   assessProperty, generatePropertySummary, getPersona, getPersonaPresets,
   listAssessedProperties,
 } from '@/lib/api'
-import { computeFit, fitColour, fitLabel } from '@/lib/fit'
+import { computeFit, fitColour, fitLabel, standouts } from '@/lib/fit'
 import { PrimaryButton, Callout } from '@/components/ui'
-import type { AssessedProperty, DimensionKey, DimensionScore, Persona } from '@/types'
+import { useScoreHelp } from '@/components/ScoreHelp'
+import type {
+  AssessedProperty, DimensionKey, DimensionMeta, DimensionScore, Persona,
+} from '@/types'
 
 const LONDON: [number, number] = [51.5074, -0.1278]
 
@@ -54,6 +57,22 @@ const workplacePin = L.divIcon({
   iconAnchor: [14, 14],
 })
 
+// Deliberately a different shape as well as a different colour from the
+// workplace marker: these are two kinds of place with two different meanings,
+// and colour alone is not a channel everyone can read.
+const preferredAreaPin = L.divIcon({
+  className: '',
+  html: `<div style="
+    width:24px;height:24px;background:#FBE9F0;color:#9C2F62;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    border:2px solid #9C2F62;box-shadow:0 1px 5px rgba(0,0,0,.25);">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="3" stroke-linecap="round"><path d="M12 21s-7-5.5-7-10a7 7 0 0 1 14 0c0 4.5-7 10-7 10z"/>
+      </svg></div>`,
+  iconSize: [24, 24],
+  iconAnchor: [12, 12],
+})
+
 /** Keeps every pin in view as properties are added. */
 function FitBounds({ points }: { points: [number, number][] }) {
   const map = useMap()
@@ -66,6 +85,167 @@ function FitBounds({ points }: { points: [number, number][] }) {
     map.fitBounds(L.latLngBounds(points), { padding: [60, 60], maxZoom: 15 })
   }, [map, points])
   return null
+}
+
+/**
+ * A property past the buyer's stated ceiling.
+ *
+ * It already caps the value score, but the score is one number among six and
+ * this is the constraint that decides whether they can buy at all — so it is
+ * also said, in pounds, wherever the property appears.
+ */
+function OverBudgetBadge({ price, ceiling }: { price: number; ceiling: number }) {
+  const over = price - ceiling
+  return (
+    <span
+      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide bg-danger-bg text-danger"
+      title={`£${ceiling.toLocaleString('en-GB')} is the most you said you could spend`}
+    >
+      £{Math.round(over).toLocaleString('en-GB')} over budget
+    </span>
+  )
+}
+
+/** Null unless there is a stated ceiling and the price is past it. */
+function overBudgetBy(
+  price: number | null | undefined,
+  ceiling: number | null | undefined,
+): number | null {
+  if (!price || !ceiling) return null
+  return price > ceiling ? price - ceiling : null
+}
+
+/**
+ * The handful of figures a buyer compares properties on, pulled out of the
+ * enrichment payload.
+ *
+ * The dimension scores answer "how does this rate for me"; these answer "what
+ * is it, actually". Both matter and they are not substitutes — a Safety of 44
+ * is only meaningful next to the 403 crimes it came from, and £4,720 a year in
+ * running costs is a fact you can act on in a way that "Value 88" is not.
+ *
+ * A fact we do not have is omitted rather than shown as a dash, so the strip
+ * never implies we looked and found nothing.
+ */
+interface KeyFact {
+  label: string
+  value: string
+  title?: string
+}
+
+function keyFacts(property: AssessedProperty): KeyFact[] {
+  const e = property.enrichment ?? {}
+  const facts: KeyFact[] = []
+
+  const costs = e.running_costs?.status === 'ok' ? e.running_costs.value : null
+  if (costs?.price_per_sqft) {
+    facts.push({
+      label: 'Price',
+      value: `£${costs.price_per_sqft.toLocaleString('en-GB')}/sq ft`,
+      title: costs.floor_area_sqft
+        ? `${costs.floor_area_sqft.toLocaleString('en-GB')} sq ft`
+        : undefined,
+    })
+  }
+  if (costs?.total_annual) {
+    facts.push({
+      label: 'To run',
+      value: `£${Math.round(costs.total_annual).toLocaleString('en-GB')}/yr`,
+      title: costs.lines
+        .map(l => `${l.label} £${Math.round(l.annual).toLocaleString('en-GB')}`)
+        .join(' · '),
+    })
+  }
+  if (costs?.council_tax_band) {
+    facts.push({ label: 'Council tax', value: `Band ${costs.council_tax_band}` })
+  }
+
+  // The worst journey, matching what the commute score is derived from.
+  const journeys = (e.commutes ?? []).filter(c => c.value)
+  if (journeys.length) {
+    const worst = journeys.reduce((a, b) =>
+      (b.value!.minutes > a.value!.minutes ? b : a))
+    facts.push({
+      label: 'Commute',
+      value: `${worst.value!.minutes} min`,
+      title: `To ${worst.label}${journeys.length > 1 ? ', your longest journey' : ''}`,
+    })
+  }
+
+  const crime = e.crime?.status === 'ok' ? e.crime.value : null
+  if (crime) {
+    facts.push({
+      label: 'Crime',
+      value: `${crime.total.toLocaleString('en-GB')}/mo`,
+      title: `Recorded within ${crime.radius_m ?? 800} m in the month of ${crime.month}`,
+    })
+  }
+
+  const comps = e.comparables?.status === 'ok' ? e.comparables.value : null
+  if (comps?.median_price) {
+    facts.push({
+      label: 'Sold nearby',
+      value: `£${Math.round(comps.median_price / 1000)}k`,
+      title: `Median of ${comps.sales.length} recent sales in this postcode`,
+    })
+  }
+
+  return facts
+}
+
+function FactStrip({ facts }: { facts: KeyFact[] }) {
+  if (!facts.length) return null
+  return (
+    <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+      {facts.map(fact => (
+        <span key={fact.label} className="text-[11px] whitespace-nowrap" title={fact.title}>
+          <span className="text-ink-faint">{fact.label} </span>
+          <span className="font-semibold text-ink tabular-nums">{fact.value}</span>
+        </span>
+      ))}
+    </div>
+  )
+}
+
+/** The one-line case for and against, from the dimensions this buyer weights. */
+function WhyYesWhyNot({ dimensions, weights }: {
+  dimensions: DimensionScore[]
+  weights: Record<DimensionKey, number>
+}) {
+  const { best, worst, unknown } = standouts(dimensions, weights)
+
+  if (!best && !worst && !unknown.length) {
+    return (
+      <p className="text-[11px] text-ink-faint">
+        Nothing stands out either way on the things you said matter.
+      </p>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-1">
+      {best && (
+        <p className="text-[11px] leading-snug">
+          <span className="font-semibold text-fit-strong">Why yes · </span>
+          <span className="text-ink">{best.label} {best.score}</span>
+          <span className="text-ink-muted"> — {best.detail}</span>
+        </p>
+      )}
+      {worst && (
+        <p className="text-[11px] leading-snug">
+          <span className="font-semibold text-fit-poor">Why not · </span>
+          <span className="text-ink">{worst.label} {worst.score}</span>
+          <span className="text-ink-muted"> — {worst.detail}</span>
+        </p>
+      )}
+      {unknown.length > 0 && (
+        <p className="text-[11px] leading-snug text-ink-faint">
+          <span className="font-semibold">Not known · </span>
+          {unknown.map(d => d.label).join(', ')} — the score rests on the rest.
+        </p>
+      )}
+    </div>
+  )
 }
 
 function GoneBadge() {
@@ -95,19 +275,35 @@ function ScoreChip({ score, coverage }: { score: number | null; coverage: number
   )
 }
 
-function DimensionBar({ dim }: { dim: DimensionScore }) {
+function DimensionBar({ dim, meta }: {
+  dim: DimensionScore
+  meta?: DimensionMeta
+}) {
+  const { trigger, panel } = useScoreHelp({
+    label: dim.label,
+    method: meta?.method,
+    source: meta?.source,
+    score: dim.score,
+    evidence: dim.detail,
+    unavailableReason: dim.unavailable_reason,
+  })
+
   if (dim.weight === 0) return null
 
   if (dim.score === null) {
     return (
       <div className="flex flex-col gap-1 py-1.5">
         <div className="flex items-baseline justify-between gap-2">
-          <span className="text-xs font-medium text-ink-muted">{dim.label}</span>
+          <span className="flex items-center gap-1.5 min-w-0">
+            <span className="text-xs font-medium text-ink-muted">{dim.label}</span>
+            {trigger}
+          </span>
           <span className="text-[10px] uppercase tracking-wide text-ink-faint font-semibold">
             No data
           </span>
         </div>
         <p className="text-[11px] text-ink-faint leading-snug">{dim.unavailable_reason}</p>
+        {panel}
       </div>
     )
   }
@@ -115,7 +311,10 @@ function DimensionBar({ dim }: { dim: DimensionScore }) {
   return (
     <div className="flex flex-col gap-1 py-1.5">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="text-xs font-medium text-ink">{dim.label}</span>
+        <span className="flex items-center gap-1.5 min-w-0">
+          <span className="text-xs font-medium text-ink">{dim.label}</span>
+          {trigger}
+        </span>
         <span className="text-xs font-semibold tabular-nums" style={{ color: fitColour(dim.score) }}>
           {dim.score}
         </span>
@@ -127,6 +326,7 @@ function DimensionBar({ dim }: { dim: DimensionScore }) {
         />
       </div>
       {dim.detail && <p className="text-[11px] text-ink-faint leading-snug">{dim.detail}</p>}
+      {panel}
     </div>
   )
 }
@@ -246,11 +446,15 @@ function ValueSummary({ property }: { property: AssessedProperty }) {
   )
 }
 
-function PropertyDetail({ property, weights, onClose }: {
+function PropertyDetail({ property, weights, meta, priceCeiling, onClose }: {
   property: AssessedProperty
   weights: Record<DimensionKey, number>
+  meta: DimensionMeta[]
+  priceCeiling?: number | null
   onClose: () => void
 }) {
+  const metaByKey = Object.fromEntries(meta.map(m => [m.key, m])) as
+    Record<DimensionKey, DimensionMeta>
   const dims = property.enrichment?.fit?.dimensions ?? []
   const { score, coverage } = computeFit(dims, weights)
   const commutes = property.enrichment?.commutes ?? []
@@ -264,6 +468,9 @@ function PropertyDetail({ property, weights, onClose }: {
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             <ScoreChip score={score} coverage={coverage} />
             <span className="text-xs font-medium text-ink-muted">{fitLabel(score)}</span>
+            {overBudgetBy(property.price, priceCeiling) !== null && (
+              <OverBudgetBadge price={property.price!} ceiling={priceCeiling!} />
+            )}
             {!property.is_active && <GoneBadge />}
           </div>
           <h2 className="font-display text-lg text-ink leading-snug truncate">
@@ -310,7 +517,13 @@ function PropertyDetail({ property, weights, onClose }: {
 
       <div className="border-t border-border pt-1">
         <p className="section-label mb-1">How it scores for you</p>
-        {dims.map(d => <DimensionBar key={d.key} dim={d} />)}
+        <p className="text-[11px] text-ink-faint mb-1.5 leading-snug">
+          Every number has a rule behind it &mdash; tap the ? to see how it was
+          worked out and why this property got it.
+        </p>
+        {dims.map(d => (
+          <DimensionBar key={d.key} dim={d} meta={metaByKey[d.key]} />
+        ))}
       </div>
 
       {(stations?.value?.length || comps?.value?.sales?.length) && (
@@ -388,6 +601,7 @@ export default function MapPage() {
   const points: [number, number][] = [
     ...pinned.map(r => [r.p.latitude!, r.p.longitude!] as [number, number]),
     ...(persona?.workplaces ?? []).map(w => [w.latitude, w.longitude] as [number, number]),
+    ...(persona?.preferred_areas ?? []).map(a => [a.latitude, a.longitude] as [number, number]),
   ]
 
   const selectedLine: [number, number][] | null =
@@ -403,10 +617,10 @@ export default function MapPage() {
         </div>
         <h1 className="font-display text-2xl text-ink mb-2">Set up your profile first</h1>
         <p className="text-base text-ink-muted mb-6 leading-relaxed">
-          Properties are scored against what you care about, so we need to know
-          that before the map means anything.
+          The properties you paste in are scored against what you care about, so
+          we need to know that before any of this means anything.
         </p>
-        <Link to="/persona"><PrimaryButton>Tell us what you&rsquo;re looking for</PrimaryButton></Link>
+        <Link to="/persona"><PrimaryButton>Set up scoring</PrimaryButton></Link>
       </div>
     )
   }
@@ -415,15 +629,21 @@ export default function MapPage() {
     <div className="flex flex-col gap-4">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <span className="stage-pill inline-flex mb-2">
-            <span className="stage-pill-dot" />
-            Step 2 — Compare properties
-          </span>
-          <h1 className="font-display text-2xl text-ink">Your search</h1>
+          {/* Not "Your search" — nothing here was searched for. Every one of
+              these is a listing the buyer found and chose to add, and calling
+              it a search invited people to wait for results we never produce. */}
+          <h1 className="font-display text-2xl text-ink">Your shortlist</h1>
           <p className="text-sm text-ink-muted mt-0.5">
             Scored for <span className="font-semibold text-ink">{persona.label}</span>
             {persona.workplaces.length > 0 &&
               ` · ${persona.workplaces.map(w => w.label).join(', ')}`}
+            {persona.preferred_areas.length > 0 && (
+              <> &middot; looking in{' '}
+                <span className="font-semibold text-ink">
+                  {persona.preferred_areas.map(a => a.label).join(', ')}
+                </span>
+              </>
+            )}
           </p>
         </div>
         <button
@@ -437,6 +657,11 @@ export default function MapPage() {
 
       {/* Paste a link */}
       <div className="card px-4 py-3.5">
+        <p className="text-xs text-ink-muted mb-2 leading-relaxed">
+          Found something on Rightmove? Paste the link and it&rsquo;s scored
+          against your profile in a couple of seconds. Add as many as you like
+          &mdash; the point is the comparison.
+        </p>
         <div className="flex gap-2">
           <input
             className="input flex-1"
@@ -499,16 +724,39 @@ export default function MapPage() {
 
       {/* Map + ranked list */}
       <div className="grid lg:grid-cols-[1.6fr_1fr] gap-4">
-        <div className="card overflow-hidden" style={{ height: 'clamp(340px, 52vh, 560px)' }}>
+        <div
+          className="card overflow-hidden map-tinted"
+          style={{ height: 'clamp(340px, 52vh, 560px)' }}
+        >
           <MapContainer
             center={LONDON}
             zoom={11}
             scrollWheelZoom
             style={{ height: '100%', width: '100%' }}
           >
+            {/* CARTO Voyager, split into geography and labels and served as two
+                layers so each can be treated differently — the ground gets the
+                bramble tint, the place names stay neutral and legible. See
+                index.css for what the filters do and why.
+
+                Voyager rather than Positron: Positron is so light that there is
+                almost no ink in it to work with, and a tint over it produced a
+                map with no discernible roads or river. Voyager has the tonal
+                range to survive being pushed.
+
+                Both attributions are required by CARTO's terms. */}
             <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              className="map-base-tinted"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+              url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png"
+              subdomains="abcd"
+              maxZoom={19}
+            />
+            <TileLayer
+              className="map-labels"
+              url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png"
+              subdomains="abcd"
+              maxZoom={19}
             />
             <FitBounds points={points} />
 
@@ -518,6 +766,19 @@ export default function MapPage() {
                 pathOptions={{ color: '#9C2F62', weight: 2, dashArray: '5 6', opacity: 0.7 }}
               />
             )}
+
+            {persona.preferred_areas.map(a => (
+              <Marker
+                key={`area-${a.label}-${a.latitude}`}
+                position={[a.latitude, a.longitude]}
+                icon={preferredAreaPin}
+              >
+                <Popup>
+                  <strong>{a.label}</strong>
+                  <br />An area you&rsquo;d like to live in
+                </Popup>
+              </Marker>
+            ))}
 
             {persona.workplaces.map(w => (
               <Marker key={`wp-${w.label}`} position={[w.latitude, w.longitude]} icon={workplacePin}>
@@ -554,10 +815,14 @@ export default function MapPage() {
           {!isLoading && ranked.length === 0 && (
             <div className="card px-5 py-8 text-center">
               <Info className="w-5 h-5 text-ink-faint mx-auto mb-3" />
-              <p className="text-sm font-semibold text-ink mb-1">No properties yet</p>
+              <p className="text-sm font-semibold text-ink mb-1">
+                Nothing to compare yet
+              </p>
               <p className="text-xs text-ink-muted leading-relaxed">
-                Paste a Rightmove link above. Each one gets a pin, a commute time
-                to your workplaces, and a score based on your priorities.
+                HomeReady doesn&rsquo;t search for properties &mdash; you bring
+                the ones you&rsquo;re considering. Paste a Rightmove link above
+                and each gets a pin, a real commute time to your workplaces, and
+                a score built from your priorities.
               </p>
             </div>
           )}
@@ -577,8 +842,11 @@ export default function MapPage() {
                   <span className="block text-sm font-medium text-ink truncate">
                     {p.address ?? p.postcode}
                   </span>
-                  <span className="flex items-center gap-1.5 text-xs text-ink-muted">
+                  <span className="flex items-center gap-1.5 text-xs text-ink-muted flex-wrap">
                     {money(p.price)}{p.bedrooms ? ` · ${p.bedrooms} bed` : ''}
+                    {overBudgetBy(p.price, persona.price_max) !== null && (
+                      <OverBudgetBadge price={p.price!} ceiling={persona.price_max!} />
+                    )}
                     {!p.is_active && <GoneBadge />}
                   </span>
                 </span>
@@ -592,6 +860,8 @@ export default function MapPage() {
         <PropertyDetail
           property={selected}
           weights={weights}
+          meta={presetData?.dimensions ?? []}
+          priceCeiling={persona.price_max}
           onClose={() => setSelectedId(null)}
         />
       )}
@@ -602,11 +872,13 @@ export default function MapPage() {
           <div className="px-5 py-4 border-b border-border">
             <h2 className="font-display text-lg text-ink">Side by side</h2>
             <p className="text-xs text-ink-muted mt-0.5">
-              Blank cells mean we have no data for that dimension &mdash; not that it scored zero.
+              Scores on the right, the figures behind them underneath. Blank
+              cells mean we have no data for that dimension &mdash; not that it
+              scored zero.
             </p>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[620px]">
+            <table className="w-full text-sm min-w-[680px]">
               <thead>
                 <tr className="bg-surface-2 border-b border-border">
                   <th className="text-left px-4 py-2.5 text-[11px] uppercase tracking-wide font-semibold text-ink-muted">
@@ -624,49 +896,80 @@ export default function MapPage() {
               </thead>
               <tbody>
                 {ranked.map(({ p, score, coverage }) => {
-                  const byKey = Object.fromEntries(
-                    (p.enrichment?.fit?.dimensions ?? []).map(d => [d.key, d]),
-                  )
+                  const dimensions = p.enrichment?.fit?.dimensions ?? []
+                  const byKey = Object.fromEntries(dimensions.map(d => [d.key, d]))
+                  const selectedRow = p.id === selectedId
+                  const rowClass = selectedRow ? 'bg-brand-light' : 'hover:bg-surface-2'
+                  const over = overBudgetBy(p.price, persona.price_max)
+
                   return (
-                    <tr
-                      key={p.id}
-                      onClick={() => setSelectedId(p.id ?? null)}
-                      className={`border-b border-border last:border-0 cursor-pointer transition-colors ${
-                        p.id === selectedId ? 'bg-brand-light' : 'hover:bg-surface-2'
-                      }`}
-                    >
-                      <td className="px-4 py-3">
-                        <span className="block text-sm font-medium text-ink truncate max-w-[190px]">
-                          {p.address ?? p.postcode}
-                        </span>
-                        <span className="block text-xs text-ink-muted">{money(p.price)}</span>
-                      </td>
-                      <td className="px-3 py-3 text-center">
-                        <ScoreChip score={score} coverage={coverage} />
-                      </td>
-                      {(presetData?.dimensions ?? []).map(d => {
-                        const dim = byKey[d.key]
-                        return (
-                          <td key={d.key} className="px-3 py-3 text-center">
-                            {dim?.score != null ? (
-                              <span
-                                className="text-sm font-semibold tabular-nums"
-                                style={{ color: fitColour(dim.score) }}
-                              >
-                                {dim.score}
-                              </span>
-                            ) : (
-                              <span
-                                className="inline-flex items-center gap-1 text-[10px] text-ink-faint"
-                                title={dim?.unavailable_reason ?? 'No data'}
-                              >
-                                <AlertCircle className="w-3 h-3" /> n/a
-                              </span>
+                    // Two rows per property: the scores, then the figures they
+                    // came from. A row of numbers alone invites the buyer to
+                    // trust the ranking without ever seeing what it rests on,
+                    // which is the habit this product is trying to break.
+                    <Fragment key={p.id}>
+                      <tr
+                        onClick={() => setSelectedId(p.id ?? null)}
+                        className={`cursor-pointer transition-colors ${rowClass}`}
+                      >
+                        <td className="px-4 pt-3 pb-1.5">
+                          <span className="block text-sm font-medium text-ink truncate max-w-[210px]">
+                            {p.address ?? p.postcode}
+                          </span>
+                          <span className="flex items-center gap-1.5 flex-wrap text-xs text-ink-muted">
+                            {money(p.price)}
+                            {p.bedrooms ? ` · ${p.bedrooms} bed` : ''}
+                            {over !== null && (
+                              <OverBudgetBadge price={p.price!} ceiling={persona.price_max!} />
                             )}
-                          </td>
-                        )
-                      })}
-                    </tr>
+                            {!p.is_active && <GoneBadge />}
+                          </span>
+                        </td>
+                        <td className="px-3 pt-3 pb-1.5 text-center align-top">
+                          <ScoreChip score={score} coverage={coverage} />
+                        </td>
+                        {(presetData?.dimensions ?? []).map(d => {
+                          const dim = byKey[d.key]
+                          return (
+                            <td key={d.key} className="px-3 pt-3 pb-1.5 text-center align-top">
+                              {dim?.score != null ? (
+                                <span
+                                  className="text-sm font-semibold tabular-nums"
+                                  style={{ color: fitColour(dim.score) }}
+                                  title={dim.detail}
+                                >
+                                  {dim.score}
+                                </span>
+                              ) : (
+                                <span
+                                  className="inline-flex items-center gap-1 text-[10px] text-ink-faint"
+                                  title={dim?.unavailable_reason ?? 'No data'}
+                                >
+                                  <AlertCircle className="w-3 h-3" /> n/a
+                                </span>
+                              )}
+                            </td>
+                          )
+                        })}
+                      </tr>
+
+                      <tr
+                        onClick={() => setSelectedId(p.id ?? null)}
+                        className={`border-b border-border last:border-0 cursor-pointer transition-colors ${rowClass}`}
+                      >
+                        <td
+                          colSpan={2 + (presetData?.dimensions ?? []).length}
+                          className="px-4 pb-3 pt-0"
+                        >
+                          {/* Pinned to the left edge so it stays readable while
+                              the score columns scroll horizontally. */}
+                          <div className="sticky left-0 flex flex-col gap-1.5 max-w-[620px]">
+                            <FactStrip facts={keyFacts(p)} />
+                            <WhyYesWhyNot dimensions={dimensions} weights={weights} />
+                          </div>
+                        </td>
+                      </tr>
+                    </Fragment>
                   )
                 })}
               </tbody>
@@ -675,11 +978,29 @@ export default function MapPage() {
         </section>
       )}
 
-      {persona.workplaces.length === 0 && (
-        <Callout variant="info" title="Add where you work">
-          Commute is the one dimension we can&rsquo;t estimate without a destination.{' '}
-          <Link to="/persona" className="font-semibold underline">Add a workplace</Link> and
-          every property gets a real door-to-door journey time.
+      {(persona.workplaces.length === 0 || persona.preferred_areas.length === 0) && (
+        <Callout variant="info" title="Two things only you can tell us">
+          {persona.workplaces.length === 0 && (
+            <p>
+              Commute is the one dimension we can&rsquo;t estimate without a
+              destination &mdash; add where you work and every property gets a
+              real door-to-door journey time.
+            </p>
+          )}
+          {persona.preferred_areas.length === 0 && (
+            <p className={persona.workplaces.length === 0 ? 'mt-2' : undefined}>
+              Add the parts of London you&rsquo;d like to live in and each
+              property is scored on how close it is to the nearest one.
+            </p>
+          )}
+          <p className="mt-2">
+            <Link to="/persona" className="font-semibold underline">
+              Edit your profile
+            </Link>{' '}
+            &mdash; until then these leave the score rather than being guessed at,
+            which is why the fit numbers say what share of your priorities they
+            rest on.
+          </p>
         </Callout>
       )}
     </div>

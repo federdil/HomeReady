@@ -25,6 +25,7 @@ from app.services.running_costs import build_running_costs
 from app.services.scoring import (
     FitResult,
     combine,
+    score_area,
     score_commute,
     score_safety,
     score_schools,
@@ -151,7 +152,7 @@ async def enrich_property(
 
     fit = _score(
         listing, persona, commutes, crime_signal, schools_signal,
-        comps_signal, costs_signal,
+        comps_signal, costs_signal, location_signal,
     )
 
     return Enrichment(
@@ -167,7 +168,7 @@ async def enrich_property(
 
 
 def _score(listing, persona, commutes, crime_signal, schools_signal, comps_signal,
-           costs_signal=None) -> FitResult | None:
+           costs_signal=None, location_signal=None) -> FitResult | None:
     if persona is None:
         return None
 
@@ -179,11 +180,17 @@ def _score(listing, persona, commutes, crime_signal, schools_signal, comps_signa
             max_minutes = int(w["max_minutes"])
             break
 
+    preferred_areas = list(persona.preferred_areas or [])
+
     raw = {
         "commute": score_commute([(c.label, c.signal) for c in commutes], max_minutes),
+        "area": score_area(location_signal, preferred_areas) if location_signal
+                else (None, ""),
         "safety": score_safety(crime_signal),
         "schools": score_schools(schools_signal),
-        "value": score_value(comps_signal, listing.get("price"), costs_signal),
+        "value": score_value(
+            comps_signal, listing.get("price"), costs_signal, persona.price_max,
+        ),
         "space": score_space(listing, persona),
     }
 
@@ -192,6 +199,12 @@ def _score(listing, persona, commutes, crime_signal, schools_signal, comps_signa
             "Add where you work to see journey times."
             if not commutes
             else next((c.signal.reason for c in commutes if c.signal.reason), "No route found.")
+        ),
+        "area": (
+            "Add the parts of London you want to live in and we'll score how "
+            "close each property is."
+            if not preferred_areas
+            else "This property's location couldn't be resolved."
         ),
         "safety": crime_signal.reason or "",
         "schools": schools_signal.reason or "",

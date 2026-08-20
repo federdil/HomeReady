@@ -493,7 +493,6 @@ export default function LegalPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        stage="Stage 4 — Legal & Survey"
         title={tab === 'document' ? 'Document Explainer' : 'Survey Interpreter'}
         description={
           tab === 'document'

@@ -173,7 +173,6 @@ export default function HomeownerPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        stage="Stage 6 — Homeowner Mode"
         title="Post-Completion Checklist"
         description="You've got the keys — now make it official. Work through these tasks in the first weeks to protect yourself legally and practically."
       />

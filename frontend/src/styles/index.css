@@ -94,29 +94,6 @@
     box-shadow: 0 1px 3px 0 rgba(0,0,0,0.06);
   }
 
-  /* ── Stage pill ──────────────────────────────────────────────────────────── */
-  .stage-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: rgba(156, 47, 98, 0.08);
-    border: 1px solid rgba(156, 47, 98, 0.16);
-    border-radius: 9999px;
-    padding: 4px 12px;
-    font-size: 12px;
-    font-weight: 600;
-    color: #9C2F62;
-    letter-spacing: 0.01em;
-  }
-
-  .stage-pill-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #9C2F62;
-    flex-shrink: 0;
-  }
-
   /* ── Buttons ─────────────────────────────────────────────────────────────── */
 
   /* Primary */
@@ -535,4 +512,89 @@
   /* Scrollbar hide */
   .scrollbar-none { scrollbar-width: none; -ms-overflow-style: none; }
   .scrollbar-none::-webkit-scrollbar { display: none; }
+}
+
+/* ── Map ──────────────────────────────────────────────────────────────────
+ *
+ * The default OpenStreetMap raster is a busy, saturated basemap — green parks,
+ * blue water, brown roads, red trunk routes. Against it the score pins, which
+ * are the only thing on the map carrying information, had to compete with the
+ * background for attention, and the whole panel sat apart from the rest of the
+ * interface.
+ *
+ * So the tiles are recoloured into the app's own palette. Three things had to
+ * be true at once, and each of the obvious approaches failed one of them.
+ *
+ * 1. It has to actually be pink. `hue-rotate` alone does nothing here: it
+ *    rotates existing chroma, and a basemap is almost entirely near-white
+ *    pixels that have none. `sepia` first gives every pixel a shared hue to
+ *    rotate, and `saturate` afterwards brings it up to something visible.
+ *
+ * 2. The rotation lands where you expect it to, which is not where the maths
+ *    says. CSS hue-rotate is a linear matrix approximation rather than a true
+ *    HSL rotation, and it drifts badly at low chroma — the arithmetically
+ *    correct 295deg comes out peach. 281deg was found by eye against the
+ *    palette and is the value that actually produces bramble.
+ *
+ * 3. It has to stay readable. All of a light basemap's detail sits in the top
+ *    of the tonal range, so raising contrast on its own just clips it to white
+ *    — an earlier attempt erased the Thames entirely. `brightness` below 1
+ *    first pulls the mid-tones down into the range contrast can act on, then
+ *    the final `brightness` lifts the result back to a background.
+ *
+ * The labels are a separate tile layer and only ever get neutral grey. Running
+ * them through the tint gave pink text on a pink ground: enough to pass a
+ * glance, not enough to read a street name off.
+ *
+ * Neither filter touches the map container, so the pins and the route line are
+ * left alone. Those carry the fit-score palette, which was chosen for
+ * colour-vision separation and must not be shifted by a decorative filter.
+ */
+.map-tinted .map-base-tinted {
+  filter: brightness(0.74) contrast(1.95) sepia(0.95) hue-rotate(281deg)
+          saturate(2.1) brightness(1.04);
+}
+
+.map-tinted .map-labels {
+  filter: grayscale(1) contrast(1.45);
+}
+
+.map-tinted .leaflet-container {
+  background: #F7EDF0;
+  font-family: inherit;
+}
+
+.map-tinted .leaflet-bar a {
+  background: #FFFFFF;
+  color: #6B5460;
+  border-bottom-color: #EFDCE4;
+}
+
+.map-tinted .leaflet-bar a:hover {
+  background: #FBE9F0;
+  color: #9C2F62;
+}
+
+.map-tinted .leaflet-control-attribution {
+  background: rgba(255, 255, 255, 0.82);
+  color: #9A8791;
+  font-size: 10px;
+}
+
+.map-tinted .leaflet-control-attribution a {
+  color: #6B5460;
+}
+
+.map-tinted .leaflet-popup-content-wrapper,
+.map-tinted .leaflet-popup-tip {
+  background: #FFFFFF;
+  color: #2A1620;
+  border: 1px solid #EFDCE4;
+  box-shadow: 0 6px 20px rgba(42, 22, 32, 0.14);
+}
+
+.map-tinted .leaflet-popup-content {
+  margin: 10px 12px;
+  font-size: 12px;
+  line-height: 1.5;
 }

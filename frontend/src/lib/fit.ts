@@ -76,3 +76,51 @@ export function fitLabel(score: number | null): string {
 export function fitIsOutlined(score: number | null): boolean {
   return score === null
 }
+
+
+/**
+ * The strongest and weakest things about a property, *for this buyer*.
+ *
+ * Not simply the highest and lowest scores: a poor score on something they
+ * weighted at 5 is not a reason to walk away, and a brilliant one is not a
+ * reason to view. Ranked on weight × distance from the midpoint, which is the
+ * same quantity that moved the overall fit.
+ *
+ * Both sides can come back empty, and that is a real answer — a property that
+ * is unremarkable on everything the buyer cares about has no headline either
+ * way, and inventing one would read as a recommendation.
+ */
+const STRONG_ENOUGH = 55
+const WEAK_ENOUGH = 45
+
+export interface Standouts {
+  best: DimensionScore | null
+  worst: DimensionScore | null
+  /** Weighted dimensions with no data — a reason for caution, not a low score. */
+  unknown: DimensionScore[]
+}
+
+export function standouts(
+  dimensions: DimensionScore[] | undefined,
+  weights: Record<DimensionKey, number>,
+): Standouts {
+  const scored = (dimensions ?? []).filter(
+    d => (weights[d.key] ?? 0) > 0 && d.score !== null,
+  )
+  const pull = (d: DimensionScore) => (weights[d.key] ?? 0) * (d.score! - 50)
+
+  const strong = scored.filter(d => d.score! >= STRONG_ENOUGH)
+  const weak = scored.filter(d => d.score! <= WEAK_ENOUGH)
+
+  return {
+    best: strong.length
+      ? strong.reduce((a, b) => (pull(b) > pull(a) ? b : a))
+      : null,
+    worst: weak.length
+      ? weak.reduce((a, b) => (pull(b) < pull(a) ? b : a))
+      : null,
+    unknown: (dimensions ?? [])
+      .filter(d => d.score === null && (weights[d.key] ?? 0) > 0)
+      .sort((a, b) => (weights[b.key] ?? 0) - (weights[a.key] ?? 0)),
+  }
+}

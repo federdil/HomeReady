@@ -12,6 +12,8 @@ import type {
   PersonaPreset,
   DimensionMeta,
   GeocodeResult,
+  OptionMeta,
+  PlaceSuggestion,
   AssessedProperty,
 } from '@/types'
 import { supabase, DEV_NO_AUTH } from './supabase'
@@ -167,7 +169,16 @@ export const toggleChecklistItem = (id: string, is_complete: boolean): Promise<C
   api.patch(`/api/v1/checklist/${id}`, { is_complete }).then(r => r.data)
 
 // ── Persona ────────────────────────────────────────────────────────────────
-export const getPersonaPresets = (): Promise<{ presets: PersonaPreset[]; dimensions: DimensionMeta[] }> =>
+export interface PersonaOptions {
+  presets: PersonaPreset[]
+  dimensions: DimensionMeta[]
+  /** Property kinds the space dimension can match on. */
+  built_forms: OptionMeta[]
+  /** Architectural periods the space dimension can match on. */
+  periods: OptionMeta[]
+}
+
+export const getPersonaPresets = (): Promise<PersonaOptions> =>
   api.get('/api/v1/persona/presets').then(r => r.data)
 
 export const getPersona = (): Promise<Persona | null> =>
@@ -178,6 +189,15 @@ export const savePersona = (persona: Persona): Promise<Persona> =>
 
 export const geocodePlace = (query: string): Promise<GeocodeResult> =>
   api.post('/api/v1/geocode', { query }).then(r => r.data)
+
+/**
+ * London places matching a part-typed query. Everything returned is already
+ * resolved to coordinates and already confirmed to be inside Greater London,
+ * so choosing a row cannot produce a persona we are unable to score.
+ */
+export const suggestPlaces = (query: string): Promise<PlaceSuggestion[]> =>
+  api.post('/api/v1/places/suggest', { query })
+    .then(r => r.data.suggestions ?? [])
 
 // ── Property assessment ────────────────────────────────────────────────────
 export const assessProperty = (url: string): Promise<AssessedProperty> =>

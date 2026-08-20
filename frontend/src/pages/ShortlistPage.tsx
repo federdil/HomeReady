@@ -266,7 +266,6 @@ export default function ShortlistPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        stage="Stage 2 — Property Evaluation"
         title="My Shortlist"
         description="Your saved properties. Decode a Rightmove listing and click 'Save to shortlist' to track it here."
       />

@@ -336,6 +336,18 @@ def _extract_from_page_model(arr: list, pd: dict, url: str) -> dict:
                 floor_area_sqft = int(size)
             break
 
+    # Rightmove's own channel for the listing. "NEW_HOME" is the portal's
+    # classification of a new build, and the only structured statement anyone
+    # makes about a property's age — everything else about period lives in the
+    # prose. "OVERSEAS" is also seen here and is why a listing can arrive with
+    # no UK postcode at all.
+    channel = ""
+    channel_idx = pd.get("channel")
+    if channel_idx is not None:
+        value = arr[channel_idx]
+        if isinstance(value, str):
+            channel = value
+
     # Archived is Rightmove's own flag for a listing no longer advertised —
     # more direct than inferring it from the HTTP status.
     status_idx = pd.get("status")
@@ -436,6 +448,7 @@ def _extract_from_page_model(arr: list, pd: dict, url: str) -> dict:
         "annual_ground_rent": annual_ground_rent,
         "council_tax_band": council_tax_band,
         "archived": archived,
+        "channel": channel,
         "key_features": key_features,
         "garden_flag": garden_flag,
         "parking_flag": parking_flag,
@@ -477,5 +490,7 @@ def _extract_from_html(soup: BeautifulSoup, url: str) -> dict:
         "tenure_type": "",
         "lease_years": None,
         "epc_rating": None,
+        "channel": "",
+        "key_features": [],
         "rightmove_url": url,
     }

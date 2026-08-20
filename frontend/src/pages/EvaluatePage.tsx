@@ -433,7 +433,6 @@ export default function EvaluatePage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        stage="Stage 2 — Property Evaluation"
         title="Listing Decoder"
         description="Paste a Rightmove link — HomeReady fetches the listing, decodes the estate agent language, surfaces hidden risks, and tells you what to ask at the viewing."
       />

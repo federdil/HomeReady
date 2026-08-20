@@ -110,13 +110,21 @@ class Persona(Base):
     min_bedrooms: Mapped[int] = mapped_column(Integer, default=1)
     needs_outdoor_space: Mapped[bool] = mapped_column(default=False)
     needs_parking: Mapped[bool] = mapped_column(default=False)
+    # Built forms from app/services/property_style.py: ["flat", "terraced"].
+    # Empty means no preference, which is not the same as preferring nothing.
     property_types: Mapped[list] = mapped_column(JSON, default=list)
+    # Architectural periods from the same module: ["victorian", "new_build"].
+    preferred_periods: Mapped[list] = mapped_column(JSON, default=list)
     min_lease_years: Mapped[int] = mapped_column(Integer, nullable=True)
 
     # {"commute": 90, "safety": 60, ...} on a 0-100 scale.
     weights: Mapped[dict] = mapped_column(JSON, default=dict)
     # [{"label","postcode","latitude","longitude","max_minutes","modes"}]
     workplaces: Mapped[list] = mapped_column(JSON, default=list)
+    # The parts of London the buyer already wants to live in, which is a
+    # different question from where they have to travel to:
+    # [{"label","postcode","latitude","longitude","district"}]
+    preferred_areas: Mapped[list] = mapped_column(JSON, default=list)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(

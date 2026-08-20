@@ -2,16 +2,28 @@
 Street-level crime, via data.police.uk (free, no key).
 
 Replaces the fabricated `safety_note` the old agent wrote from memory. The API
-returns individual crimes within roughly a one-mile radius for a given month,
-which we reduce to a count, a category mix, and a density figure.
+returns individual crimes inside an area for a given month, which we reduce to a
+count, a category mix, and a position within London.
 
-Deliberately not attempted here: a "crime rate per 1,000 residents". That needs
-a population denominator for the exact catchment, which the API does not give.
-Reporting a density and a peer comparison is honest; inventing a rate is not.
+Two decisions worth stating.
+
+**Radius.** The point query data.police.uk offers covers roughly a one-mile
+circle. A mile from Bethnal Green reaches the City fringe and Shoreditch's
+nightlife, so the figure it returns describes half of east London rather than
+the street you would live on. This asks instead for an explicit ~800 m polygon —
+a ten-minute walk, which is what "the immediate area" means to someone deciding
+where to live — and every threshold in scoring is calibrated against that
+radius.
+
+**No crime rate.** Deliberately not attempted: a "crime rate per 1,000
+residents". That needs a population denominator for the exact catchment, which
+the API does not give. Reporting a count against London's own distribution is
+honest; inventing a rate is not.
 """
 from __future__ import annotations
 
 import asyncio
+import math
 from collections import Counter
 from dataclasses import dataclass, field
 from datetime import date, timedelta
@@ -24,6 +36,10 @@ from app.services.providers.http import client
 log = structlog.get_logger()
 
 SOURCE = "data.police.uk"
+
+# A ten-minute walk. Small enough to describe a neighbourhood, large enough that
+# the count is not dominated by whether one busy street falls just inside it.
+RADIUS_M = 800
 
 # Categories a buyer reads as "is this street safe to walk down at night",
 # as distinct from acquisitive crime that affects insurance more than safety.
@@ -57,6 +73,7 @@ class CrimeSummary:
     month: str
     total: int
     personal_safety_count: int
+    radius_m: int = RADIUS_M
     top_categories: list[tuple[str, int]] = field(default_factory=list)
 
     @property
@@ -77,11 +94,29 @@ def _candidate_months(count: int = 4) -> list[str]:
     return months
 
 
+def _circle(lat: float, lng: float, radius_m: int, points: int = 20) -> str:
+    """The polygon the API expects: "lat,lng:lat,lng:…".
+
+    Twenty vertices sit within half a percent of a true circle's area, which is
+    far inside the noise in the underlying data — the published coordinates are
+    themselves snapped to anonymised map points.
+    """
+    metres_per_degree_lat = 111_320.0
+    metres_per_degree_lng = metres_per_degree_lat * math.cos(math.radians(lat))
+    vertices = []
+    for i in range(points):
+        angle = 2 * math.pi * i / points
+        d_lat = (radius_m * math.cos(angle)) / metres_per_degree_lat
+        d_lng = (radius_m * math.sin(angle)) / metres_per_degree_lng
+        vertices.append(f"{lat + d_lat:.5f},{lng + d_lng:.5f}")
+    return ":".join(vertices)
+
+
 async def _fetch_month(lat: float, lng: float, month: str) -> list[dict] | None:
     try:
         resp = await client.get(
             "https://data.police.uk/api/crimes-street/all-crime",
-            params={"lat": lat, "lng": lng, "date": month},
+            params={"poly": _circle(lat, lng, RADIUS_M), "date": month},
         )
     except Exception as e:
         log.warning("police_fetch_failed", month=month, error=str(e))
@@ -116,6 +151,7 @@ async def crime_summary(lat: float, lng: float) -> Signal[CrimeSummary]:
                 month=month,
                 total=len(crimes),
                 personal_safety_count=personal,
+                radius_m=RADIUS_M,
                 top_categories=top,
             ),
             source=SOURCE,

@@ -21,20 +21,31 @@ from app.models.schemas import (
     DimensionMeta,
     GeocodeRequest,
     GeocodeResponse,
+    OptionMeta,
     PersonaPresetResponse,
     PersonaRequest,
     PersonaResponse,
+    PlaceSuggestion,
+    PlaceSuggestResponse,
 )
 from app.services.enrichment import enrich_property, serialise_enrichment
 from app.services.features import summarise_value
 from app.services.personas import (
     DIMENSION_BLURBS,
     DIMENSION_LABELS,
+    DIMENSION_METHODS,
+    DIMENSION_SOURCES,
     DIMENSIONS,
     PRESETS,
     normalise_weights,
 )
-from app.services.providers import geocode
+from app.services.property_style import (
+    BUILT_FORM_KEYS,
+    BUILT_FORMS,
+    PERIOD_KEYS,
+    PERIODS,
+)
+from app.services.providers import geocode, places
 from app.services.scoring import combine, score_space
 from app.services.rightmove import RightmoveError, fetch_listing
 
@@ -57,14 +68,30 @@ async def list_presets():
                 min_bedrooms=p.min_bedrooms,
                 needs_outdoor_space=p.needs_outdoor_space,
                 needs_parking=p.needs_parking,
+                property_types=p.property_types,
+                preferred_periods=p.preferred_periods,
             ).model_dump()
             for p in PRESETS
         ],
         "dimensions": [
             DimensionMeta(
-                key=k, label=DIMENSION_LABELS[k], blurb=DIMENSION_BLURBS[k]
+                key=k,
+                label=DIMENSION_LABELS[k],
+                blurb=DIMENSION_BLURBS[k],
+                method=DIMENSION_METHODS[k],
+                source=DIMENSION_SOURCES[k],
             ).model_dump()
             for k in DIMENSIONS
+        ],
+        # Served rather than hard-coded in the client: these keys are what the
+        # space dimension matches on, so a label editing itself into a mismatch
+        # would silently stop a stated preference from ever being met.
+        "built_forms": [
+            OptionMeta(key=k, label=label).model_dump() for k, label in BUILT_FORMS
+        ],
+        "periods": [
+            OptionMeta(key=k, label=label, blurb=blurb).model_dump()
+            for k, label, blurb in PERIODS
         ],
     }
 
@@ -91,9 +118,11 @@ def _persona_out(p: Persona) -> PersonaResponse:
         needs_outdoor_space=p.needs_outdoor_space,
         needs_parking=p.needs_parking,
         property_types=p.property_types or [],
+        preferred_periods=p.preferred_periods or [],
         min_lease_years=p.min_lease_years,
         weights=normalise_weights(p.weights),
         workplaces=p.workplaces or [],
+        preferred_areas=p.preferred_areas or [],
     )
 
 
@@ -125,23 +154,67 @@ async def save_persona(
     persona.min_bedrooms = req.min_bedrooms
     persona.needs_outdoor_space = req.needs_outdoor_space
     persona.needs_parking = req.needs_parking
-    persona.property_types = req.property_types
+    persona.property_types = _known_only(req.property_types, BUILT_FORM_KEYS)
+    persona.preferred_periods = _known_only(req.preferred_periods, PERIOD_KEYS)
     persona.min_lease_years = req.min_lease_years
     persona.weights = normalise_weights(req.weights)
     persona.workplaces = [w.model_dump() for w in req.workplaces]
+    persona.preferred_areas = [a.model_dump() for a in req.preferred_areas]
 
     await db.flush()
     return _persona_out(persona)
 
 
-# ── Workplace lookup ──────────────────────────────────────────────────────
+def _known_only(values: list[str], allowed: tuple[str, ...]) -> list[str]:
+    """Drop anything not in the current vocabulary, the same way
+    `normalise_weights` drops retired dimensions. A stale client sending a key
+    scoring no longer understands must not create a preference that can never
+    be met — that would fail the space dimension on every property, for ever.
+    Order is preserved and duplicates collapse."""
+    seen: set[str] = set()
+    return [
+        v for v in values
+        if v in allowed and not (v in seen or seen.add(v))
+    ]
+
+
+# ── Place lookup ──────────────────────────────────────────────────────────
+@router.post("/places/suggest", response_model=PlaceSuggestResponse)
+async def suggest_places(req: GeocodeRequest):
+    """London places matching what has been typed so far.
+
+    Exists so a workplace or a preferred area is *chosen* rather than guessed
+    at: everything offered here has already been resolved to coordinates and
+    already confirmed to be inside Greater London, which is the check that
+    matters — a persona pointing at Manchester scores every property against a
+    journey TfL cannot plan.
+
+    An empty list is a normal answer. "Amazon UK LHR16" is not in open map data
+    under that name, and neither is any other internal site code.
+    """
+    return PlaceSuggestResponse(
+        suggestions=[
+            PlaceSuggestion(
+                label=p.label,
+                description=p.description,
+                postcode=p.postcode,
+                district=p.district,
+                latitude=p.latitude,
+                longitude=p.longitude,
+            )
+            for p in await places.suggest(req.query)
+        ]
+    )
+
+
 @router.post("/geocode", response_model=GeocodeResponse)
 async def geocode_place(req: GeocodeRequest):
-    """Resolve a workplace to coordinates.
+    """Resolve a typed workplace or preferred area to coordinates.
 
-    Named corporate sites ("Amazon UK LHR16") frequently do not resolve from
-    open data. That is an expected outcome, not an error — the client offers a
-    draggable pin instead, so this returns `found: false` with a readable reason.
+    Kept alongside the suggestions for anyone who types a full postcode and
+    presses enter without waiting. Anywhere outside Greater London comes back
+    `found: false` with a reason that names where it actually is, rather than
+    being accepted and then scored against data that stops at the M25.
     """
     signal = await geocode.geocode_address(req.query)
     if not signal.ok:
@@ -152,6 +225,7 @@ async def geocode_place(req: GeocodeRequest):
         found=True,
         label=loc.district or loc.postcode or req.query,
         postcode=loc.postcode,
+        district=loc.district,
         latitude=loc.latitude,
         longitude=loc.longitude,
     )

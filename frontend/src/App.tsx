@@ -84,10 +84,12 @@ function Sidebar() {
     <aside className="hidden md:flex w-60 lg:w-64 flex-shrink-0 flex-col gap-3 sticky top-0 h-screen overflow-y-auto py-6 px-3 lg:px-4">
       <NavGroups />
       <div className="card px-4 py-4 mt-auto">
-        <p className="section-label mb-2">How scoring works</p>
+        <p className="section-label mb-2">How this works</p>
         <p className="text-xs text-ink-muted leading-relaxed">
-          Every figure comes from public data — TfL, the police, Land Registry,
-          the DfE. Where there&rsquo;s no data we say so rather than guess.
+          You find properties on Rightmove and paste the links here. We score
+          each one against your profile, from public data &mdash; TfL, the
+          police, Land Registry, the DfE. Where there&rsquo;s no data we say so
+          rather than guess.
         </p>
       </div>
     </aside>
@@ -176,7 +178,7 @@ function TopNav({ onMenuClick }: { onMenuClick: () => void }) {
             className="flex items-center gap-1.5 text-xs font-semibold text-brand bg-brand-light border border-brand/20 hover:bg-brand/10 transition-colors px-3 py-1.5 rounded-lg"
           >
             <Save className="w-3.5 h-3.5" />
-            Save your search
+            Save your shortlist
           </NavLink>
         ) : user && (
           <>
@@ -293,7 +295,7 @@ export default function App() {
   )
 }
 
-/** Reachable from "Save your search", never as a gate. Someone who already
+/** Reachable from "Save your shortlist", never as a gate. Someone who already
  *  has a full account has nothing to do here. */
 function AuthPublic() {
   const { loading, isGuest, user } = useAuth()

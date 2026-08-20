@@ -121,7 +121,6 @@ export default function OfferPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        stage="Stage 3 — Offer & Negotiation"
         title="Offer Strategy"
         description="Tell HomeReady about the property and your position. We'll calculate the right offer, give you leverage points, and write your opening script."
       />

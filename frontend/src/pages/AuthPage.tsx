@@ -133,7 +133,7 @@ export default function AuthPage() {
                 <h2 className="font-display text-xl text-ink mb-2">Check your email</h2>
                 <p className="text-sm text-ink-muted leading-relaxed">
                   {isGuest
-                    ? "We've sent a confirmation link. Click it to finish saving your search — everything you've added is already attached to it."
+                    ? "We've sent a confirmation link. Click it to finish saving your shortlist — every property you've added is already attached to it."
                     : "We've sent a confirmation link to your email address. Click it to verify your account, then sign in."}
                 </p>
               </div>
@@ -147,7 +147,7 @@ export default function AuthPage() {
                 <h2 className="font-display text-2xl text-ink mb-1">
                   {mode === 'signin'
                     ? 'Welcome back'
-                    : isGuest ? 'Save your search' : 'Create your account'}
+                    : isGuest ? 'Save your shortlist' : 'Create your account'}
                 </h2>
                 <p className="text-sm text-ink-muted">
                   {mode === 'signin'

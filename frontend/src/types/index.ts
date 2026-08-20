@@ -158,7 +158,13 @@ export interface ChecklistItem {
 }
 
 // ── Persona ────────────────────────────────────────────────────────────────
-export type DimensionKey = 'commute' | 'safety' | 'schools' | 'value' | 'space'
+export type DimensionKey =
+  | 'commute'
+  | 'area'
+  | 'safety'
+  | 'schools'
+  | 'value'
+  | 'space'
 
 export interface Workplace {
   label: string
@@ -167,6 +173,18 @@ export interface Workplace {
   longitude: number
   max_minutes: number
   modes?: string | null
+}
+
+/**
+ * Somewhere the buyer already wants to live, as opposed to somewhere they have
+ * to get to. No journey-time target: the question is proximity, not travel.
+ */
+export interface PreferredArea {
+  label: string
+  postcode?: string | null
+  latitude: number
+  longitude: number
+  district?: string | null
 }
 
 export interface Persona {
@@ -179,10 +197,14 @@ export interface Persona {
   min_bedrooms: number
   needs_outdoor_space: boolean
   needs_parking: boolean
+  /** Built-form keys from the server's vocabulary: 'flat', 'terraced', … */
   property_types: string[]
+  /** Period keys from the server's vocabulary: 'victorian', 'new_build', … */
+  preferred_periods: string[]
   min_lease_years?: number | null
   weights: Record<DimensionKey, number>
   workplaces: Workplace[]
+  preferred_areas: PreferredArea[]
 }
 
 export interface PersonaPreset {
@@ -193,12 +215,37 @@ export interface PersonaPreset {
   min_bedrooms: number
   needs_outdoor_space: boolean
   needs_parking: boolean
+  property_types: string[]
+  preferred_periods: string[]
 }
 
 export interface DimensionMeta {
   key: DimensionKey
   label: string
   blurb: string
+  /** The rule behind the number, in plain English. Paragraphs split on \n\n. */
+  method: string
+  source: string
+}
+
+/**
+ * A choice offered in the profile form. Served by the API rather than held
+ * here, so a label can never drift away from the key that drives scoring.
+ */
+export interface OptionMeta {
+  key: string
+  label: string
+  /** What living in one is actually like. Empty for self-explanatory options. */
+  blurb: string
+}
+
+export interface PlaceSuggestion {
+  label: string
+  description: string
+  postcode: string
+  district: string
+  latitude: number
+  longitude: number
 }
 
 // ── Signals & assessment ───────────────────────────────────────────────────
@@ -247,7 +294,7 @@ export interface RunningCostsValue {
 
 export interface Enrichment {
   location?: SignalEnvelope<{ postcode: string; latitude: number; longitude: number; district: string }>
-  crime?: SignalEnvelope<{ month: string; total: number; personal_safety_count: number; top_categories: [string, number][] }>
+  crime?: SignalEnvelope<{ month: string; total: number; personal_safety_count: number; radius_m: number; top_categories: [string, number][] }>
   schools?: SignalEnvelope<{ radius_m: number; primary_count: number; secondary_count: number; ratings_available: boolean; nearest: { name: string; distance_m: number; phase: string | null }[] }>
   comparables?: SignalEnvelope<{ postcode: string; median_price: number; sales: { price: number; date: string; address: string }[] }>
   stations?: SignalEnvelope<{ name: string; distance_m: number }[]>
@@ -280,6 +327,7 @@ export interface GeocodeResult {
   found: boolean
   label: string
   postcode: string
+  district: string
   latitude: number | null
   longitude: number | null
   reason?: string | null
