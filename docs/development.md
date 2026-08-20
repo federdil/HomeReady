@@ -143,19 +143,26 @@ CORS_ORIGINS=https://<your-vercel-domain>
 request to one fixed user, so all visitors would share an account. It is ignored
 unless `ENVIRONMENT=development`, but do not rely on that alone.
 
-After the first deploy, run the migrations and load the schools dataset against
-the production database:
+**Migrations run themselves.** The start command in `backend/railway.toml` is
+`alembic upgrade head && uvicorn …`, so every deploy migrates before it serves.
 
-```bash
-DATABASE_URL="<production url>" alembic upgrade head
-```
+This is not a convenience. Migrating by hand made deploys silently
+order-dependent: ship code that reads a column the database does not have yet
+and every request touching it returns 500, while `/api/v1/health` — which
+touches nothing — reports the service healthy. A broken deploy that looks green
+is worse than one that fails loudly. The `&&` is what buys that: a migration
+that fails stops the container starting, so Railway holds the previous release
+rather than putting a server in front of a schema it does not match.
+
+The schools dataset is still a manual, one-off job — it is a ~65 MB download and
+does not belong in a start command:
 
 ```bash
 DATABASE_URL="<production url>" python -m scripts.load_schools
 ```
 
-Skipping the second one leaves the schools dimension unscored for every
-property, which looks like a bug rather than missing data.
+Skipping it leaves the schools dimension unscored for every property, which
+looks like a bug rather than missing data.
 
 ### Frontend (Vercel)
 

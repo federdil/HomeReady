@@ -2,7 +2,18 @@
 builder = "NIXPACKS"
 
 [deploy]
-startCommand = "uvicorn main:app --host 0.0.0.0 --port $PORT"
+# Migrations run before the server, on every deploy.
+#
+# They used to be a manual step, which made a deploy silently order-dependent:
+# ship code that reads a column the database does not have yet and every request
+# touching it returns 500 — while the health check, which touches nothing,
+# reports the service healthy. A broken deploy that looks green is worse than
+# one that fails loudly.
+#
+# `&&` is doing the work: a migration that fails stops the container starting,
+# so Railway holds the previous release rather than putting a server in front of
+# a schema it does not match.
+startCommand = "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port $PORT"
 healthcheckPath = "/api/v1/health"
 healthcheckTimeout = 30
 restartPolicyType = "ON_FAILURE"
